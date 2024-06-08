@@ -1,6 +1,8 @@
 from typing import Optional, List, Callable, Tuple
 
+
 from enum import IntEnum
+from gymnax.environments import spaces
 from flax import struct
 import jax
 import jax.numpy as jnp
@@ -20,11 +22,17 @@ DIR_TO_VEC = jnp.array([
 ], dtype=jnp.int8)
 
 
-class Actions(IntEnum):
-    left = 0    # Turn left
-    right = 1   # Turn right
-    forward = 2  # Move forward
+class MinigridActions(IntEnum):
+    left = 0
+    right = 1
+    forward = 2
 
+
+class KeyboardActions(IntEnum):
+    right = 0
+    down = 1
+    left = 2
+    up = 3
 
 class Observation(struct.PyTreeNode):
    image: jax.Array
@@ -171,7 +179,7 @@ def make_observation():
 
 
 
-def take_action(
+def minigrid_take_action(
     state: EnvState,
     action: jax.Array) -> jax.Array:
 
@@ -181,7 +189,7 @@ def take_action(
 
     # Update agent position (forward action)
     fwd_pos = jnp.minimum(
-        jnp.maximum(agent_pos + (action == Actions.forward)
+        jnp.maximum(agent_pos + (action == MinigridActions.forward)
                     * DIR_TO_VEC[agent_dir], 0),
         jnp.array([grid.shape[0]-1, grid.shape[1]-1], dtype=jnp.uint32)
     )
@@ -198,8 +206,8 @@ def take_action(
     grid = grid.at[agent_pos[0], agent_pos[1]].set(0)
 
     # Update agent direction (left_turn or right_turn action)
-    agent_dir_offset = 0 + (action == Actions.right) - \
-        (action == Actions.left)
+    agent_dir_offset = 0 + (action == MinigridActions.right) - \
+        (action == MinigridActions.left)
     agent_dir = (agent_dir + agent_dir_offset) % 4
 
 
@@ -207,8 +215,26 @@ def take_action(
 
 class HouseMaze:
 
-    def __init__(self, task_runner_cls: TaskRunner = TaskRunner):
+    def __init__(
+            self,
+            task_runner_cls: TaskRunner = TaskRunner,
+            action_spec: str = 'keyboard',
+            ):
         self.task_runner_cls = task_runner_cls
+        self.action_spec = action_spec
+
+    def action_space(
+        self, params: Optional[EnvParams] = None
+    ) -> spaces.Discrete:
+        """Action space of the environment."""
+        return spaces.Discrete(self.num_actions(params))
+
+    def num_actions(self, params):
+        del params
+        if self.action_spec == 'keyboard':
+            return 4
+        elif self.action_spec == 'minigrid':
+            return 3
 
     def reset(self, rng: jax.Array, params: EnvParams) -> TimeStep:
         """
@@ -317,9 +343,18 @@ class HouseMaze:
         return timestep
 
     def step(self, rng: jax.Array, timestep: TimeStep, action: jax.Array, params: EnvParams) -> TimeStep:
-        grid, agent_pos, agent_dir = take_action(
-            timestep.state,
-            action)
+
+        if self.action_spec == 'keyboard':
+            grid, agent_pos, agent_dir = minigrid_take_action(
+                timestep.state.replace(agent_dir=action),
+                action=2)
+        elif self.action_spec == 'minigrid':
+            grid, agent_pos, agent_dir = minigrid_take_action(
+                timestep.state,
+                action)
+        else:
+            raise NotImplementedError(self.action_spec)
+
 
         task_state = timestep.state.task_runner.step(
             timestep.state.task_state, grid, agent_pos)
