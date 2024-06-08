@@ -3,8 +3,6 @@ import jax
 import jax.numpy as jnp
 from collections import deque
 
-from maze import MapInit
-
 import numpy as np
 
 
@@ -62,7 +60,7 @@ def find_optimal_path(grid, agent_pos, goal):
 
         if grid[current_pos[0], current_pos[1], 0] == goal:
 
-            return np.array([p[::-1] for p in path])
+            return np.array([p for p in path])
 
         visited.add(current_pos)
 
@@ -108,16 +106,16 @@ def from_str(
               grid[y, x] = np.array(1)
           elif char == '>':
               assert agent_pos is None, "Agent position can only be set once."
-              agent_pos, agent_dir = (x, y), 0
+              agent_pos, agent_dir = (y, x), 0
           elif char == 'v':
               assert agent_pos is None, "Agent position can only be set once."
-              agent_pos, agent_dir = (x, y), 1
+              agent_pos, agent_dir = (y, x), 1
           elif char == '<':
               assert agent_pos is None, "Agent position can only be set once."
-              agent_pos, agent_dir = (x, y), 2
+              agent_pos, agent_dir = (y, x), 2
           elif char == '^':
               assert agent_pos is None, "Agent position can only be set once."
-              agent_pos, agent_dir = (x, y), 3
+              agent_pos, agent_dir = (y, x), 3
           elif char in char_to_key:
               key = char_to_key[char]
               if isinstance(key, str):
@@ -134,7 +132,7 @@ def from_str(
   assert agent_pos is not None
   assert agent_dir is not None
 
-  return MapInit(grid, agent_pos, agent_dir)
+  return grid, agent_pos, agent_dir
 
 
 #class AutoResetWrapper(Wrapper):

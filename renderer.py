@@ -3,7 +3,6 @@ import numpy as np
 import jax
 import jax.numpy as jnp
 import chex
-import matplotlib.pyplot as plt
 
 from functools import partial
 
@@ -58,19 +57,21 @@ def add_border(tile):
 
 def replace_color(image, old_color, new_color):
     # Convert the image and colors to JAX arrays if they aren't already
-    image = jnp.array(image)
-    old_color = jnp.array(old_color)
-    new_color = jnp.array(new_color)
+    image = np.asarray(image)
+    old_color = np.asarray(old_color)
+    new_color = np.asarray(new_color)
 
     # Create a mask where all pixels match the old_color
-    mask = jnp.all(image == old_color, axis=-1)
+    mask = np.all(image == old_color, axis=-1)
 
     # Replace the color
-    new_image = image.at[mask].set(new_color)
+    image[mask] = new_color
 
-    return new_image
+    return image
 
-def load_image_dict(file: str):
+def load_image_dict(file: str, add_borders: bool = False):
+    if not add_borders:
+        add_border = lambda x: x
 
     with open(file, 'rb') as f:
         image_dict = pickle.load(f)
@@ -79,9 +80,11 @@ def load_image_dict(file: str):
 
     images = image_dict['images']
 
-    image_dict['images'] = np.array(
-        [replace_color(images[i], (255, 255, 255), (0,0,0)) for i in range(len(images))]
-    )
+    new_images = []
+    for image in images:
+        image = replace_color(image, (255, 255, 255), (0, 0, 0))
+        image = add_border(image)
+    new_images = np.array(new_images)
 
     extra_keys = [
         ('wall', np.tile([100, 100, 100], (tile_size, tile_size, 1))),
@@ -170,7 +173,7 @@ def create_image_from_grid(grid, agent_pos, agent_dir, image_dict):
     agent_tile = make_agent_tile(agent_dir, tile_size)
 
     # Adjust agent position to account for the expanded grid
-    agent_x, agent_y = agent_pos
+    agent_y, agent_x = agent_pos
     agent_x += 1
     agent_y += 1
 
