@@ -119,18 +119,22 @@ def from_str(
           elif char in char_to_key:
               key = char_to_key[char]
               if isinstance(key, str):
-                grid[y, x] = make_element(key)
+                object = make_element(key)
               elif isinstance(key, np.ndarray):
-                grid[y, x] = key
+                object = key
               elif isinstance(key, np.int32):
-                grid[y, x] = key
+                object = key
               else:
                 raise NotImplementedError(f"type: {type(key)}")
+              grid[y, x] = object
           else:
               raise RuntimeError(f"Unknown char: {char}")
 
   assert agent_pos is not None
   assert agent_dir is not None
+
+  agent_pos = np.array(agent_pos)
+  agent_dir = np.array(agent_dir)
 
   return grid, agent_pos, agent_dir
 

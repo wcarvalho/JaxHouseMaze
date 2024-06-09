@@ -15,9 +15,9 @@ ActionOutput = Tuple[Grid, AgentPos, AgentDir]
 
 # Map of agent direction indices to vectors
 DIR_TO_VEC = jnp.array([
-    ( 0, 1),  # right
-    ( 1, 0),  # down
-    ( 0, -1),  # left
+    (0, 1),  # right
+    (1, 0),  # down
+    (0, -1),  # left
     (-1, 0),  # up
 ], dtype=jnp.int8)
 
@@ -34,11 +34,11 @@ class KeyboardActions(IntEnum):
     left = 2
     up = 3
 
+
 class Observation(struct.PyTreeNode):
    image: jax.Array
    task_w: jax.Array
    state_features: jax.Array
-   pocket: jax.Array
    position: jax.Array
    direction: jax.Array
    prev_action: jax.Array
@@ -52,19 +52,11 @@ class MapInit:
 
 
 @struct.dataclass
-class ResetParams:
-    map_init: MapInit
-    train_objects: jax.Array
-    test_objects: jax.Array
-    starting_locs: Optional[jax.Array] = None
-    curriculum: jax.Array = jnp.array(False)
-
-
-@struct.dataclass
 class EnvParams:
-    reset_params: ResetParams
+    map_init: MapInit
+    objects: jax.Array
     time_limit: int = 250
-    training: bool = True
+
 
 class TaskState(struct.PyTreeNode):
    features: jax.Array
@@ -75,6 +67,7 @@ class StepType(jnp.uint8):
     FIRST: jax.Array = jnp.asarray(0, dtype=jnp.uint8)
     MID: jax.Array = jnp.asarray(1, dtype=jnp.uint8)
     LAST: jax.Array = jnp.asarray(2, dtype=jnp.uint8)
+
 
 def object_positions(grid, objects):
     def loc(p):
@@ -88,6 +81,7 @@ def object_positions(grid, objects):
     present = where_present.any(axis=(0, 1)).astype(jnp.int32)[:, None]
     not_found = jnp.full(object_positions.shape, -1)
     return object_positions*present + (1-present)*not_found
+
 
 class TaskRunner(struct.PyTreeNode):
   """_summary_
@@ -136,6 +130,7 @@ class TaskRunner(struct.PyTreeNode):
         features=self.convert_type(decrease)
     )
 
+
 @struct.dataclass
 class EnvState:
     # episode information
@@ -148,10 +143,10 @@ class EnvState:
     agent_dir: int
 
     # task info
-    reset_params_idx: jax.Array
+    map_idx: jax.Array
     task_w: jax.Array
-    offtask_w: Optional[jax.Array] = None
     task_state: Optional[TaskState] = None
+
 
 class TimeStep(struct.PyTreeNode):
     state: EnvState
@@ -177,10 +172,9 @@ def make_observation():
    )
 
 
-
-def minigrid_take_action(
-    state: EnvState,
-    action: jax.Array) -> jax.Array:
+def take_action(
+        state: EnvState,
+        action: jax.Array) -> jax.Array:
 
     grid = state.grid
     agent_pos = state.agent_pos
@@ -209,16 +203,19 @@ def minigrid_take_action(
         (action == MinigridActions.left)
     agent_dir = (agent_dir + agent_dir_offset) % 4
 
-
     return grid, agent_pos, agent_dir
 
+
 class HouseMaze:
+    """Simple environment where you get reward for collecting an object.
+    
+    Episode ends when all objects are collected or at a time-limit."""
 
     def __init__(
             self,
             task_runner: TaskRunner,
             action_spec: str = 'keyboard',
-            ):
+    ):
         self.task_runner = task_runner
         self.action_spec = action_spec
 
@@ -243,76 +240,45 @@ class HouseMaze:
         ##################
         # sample level
         ##################
-        nlevels = len(params.reset_params.curriculum)
-        rng, rng_ = jax.random.split(rng)
-        reset_params_idx = jax.random.randint(rng_, shape=(), minval=0, maxval=nlevels)
+        ndim = params.map_init.grid.ndim
+        if ndim == 3:
+            # single choice
+            map_idx = jnp.array(0)
+            map_init = params.map_init
+        elif ndim == 4:
+            # multiple to choose from
+            nlevels = len(params.map_init.grid)
+            rng, rng_ = jax.random.split(rng)
 
-        index = lambda p: jax.lax.dynamic_index_in_dim(p, reset_params_idx, keepdims=False)
-        reset_params = jax.tree_map(index, params.reset_params)
+            # select one
+            map_idx = jax.random.randint(
+                rng_, shape=(), minval=0, maxval=nlevels)
 
-        grid = reset_params.map_init.grid
-        agent_dir = reset_params.map_init.agent_dir
+            # index across each pytree member
+            def index(p): return jax.lax.dynamic_index_in_dim(
+                p, map_idx, keepdims=False)
+            map_init = jax.tree_map(index, params.map_init)
+        else:
+            raise NotImplementedError
 
-        ##################
-        # sample pair
-        ##################
-        npairs = len(reset_params.train_objects)
-        pair_idx = jax.random.randint(rng_, shape=(), minval=0, maxval=npairs)
-
-        ##################
-        # sample position (function of which pair has been choice)
-        ##################
-        def sample_pos_from_curriculum(rng_):
-            locs = jax.lax.dynamic_index_in_dim(
-                reset_params.starting_locs, pair_idx, keepdims=False,
-            )
-            return jax.random.choice(rng_, locs)
-
-        rng, rng_ = jax.random.split(rng)
-        agent_pos = jax.lax.cond(
-            reset_params.curriculum,
-            sample_pos_from_curriculum,
-            lambda _: reset_params.map_init.agent_pos,
-            rng_
-        )
+        grid = map_init.grid
+        agent_dir = map_init.agent_dir
+        agent_pos = map_init.agent_pos
 
         ##################
-        # sample task objects
+        # sample task object
         ##################
-        train_object = jax.lax.dynamic_index_in_dim(
-            reset_params.train_objects, pair_idx, keepdims=False,
-        )
-        test_object = jax.lax.dynamic_index_in_dim(
-            reset_params.test_objects, pair_idx, keepdims=False,
-        )
-
-        def train_sample(rng):
-            return train_object, test_object
-
-        def test_sample(rng):
-            return test_object, train_object
-
-        def train_or_test_sample(rng):
-            return jax.lax.cond(
-                jax.random.bernoulli(rng),
-                train_sample,
-                test_sample,
-                rng
-            )
-        rng, rng_ = jax.random.split(rng)
-        task_object, offtask_object = jax.lax.cond(
-            params.training,
-            train_sample,
-            train_or_test_sample,
-            rng_
+        nobjects = len(params.objects)
+        object_idx = jax.random.randint(
+            rng_, shape=(), minval=0, maxval=nobjects)
+        task_object = jax.lax.dynamic_index_in_dim(
+            params.objects, object_idx, keepdims=False,
         )
 
         ##################
         # create task vectors
         ##################
-
         task_w = self.task_runner.task_vector(task_object)
-        offtask_w = self.task_runner.task_vector(offtask_object)
         task_state = self.task_runner.reset(grid, agent_pos)
 
         ##################
@@ -324,9 +290,8 @@ class HouseMaze:
             grid=grid,
             agent_pos=agent_pos,
             agent_dir=agent_dir,
-            reset_params_idx=reset_params_idx,
+            map_idx=map_idx,
             task_w=task_w,
-            offtask_w=offtask_w,
             task_state=task_state,
         )
 
@@ -342,11 +307,11 @@ class HouseMaze:
     def step(self, rng: jax.Array, timestep: TimeStep, action: jax.Array, params: EnvParams) -> TimeStep:
 
         if self.action_spec == 'keyboard':
-            grid, agent_pos, agent_dir = minigrid_take_action(
+            grid, agent_pos, agent_dir = take_action(
                 timestep.state.replace(agent_dir=action),
-                action=2)
+                action=MinigridActions.forward)
         elif self.action_spec == 'minigrid':
-            grid, agent_pos, agent_dir = minigrid_take_action(
+            grid, agent_pos, agent_dir = take_action(
                 timestep.state,
                 action)
         else:
@@ -362,10 +327,10 @@ class HouseMaze:
             task_state=task_state,
         )
 
-        terminated = (task_state.features > 0).any()  # any object picked up
         task_w = timestep.state.task_w.astype(jnp.float32)
         features = task_state.features.astype(jnp.float32)
         reward = (task_w*features).sum(-1)
+        terminated = reward > 0  # get task object
         truncated = jnp.equal(state.step_num, params.time_limit)
 
         step_type = jax.lax.select(
@@ -381,6 +346,3 @@ class HouseMaze:
             observation=None,
         )
         return timestep
-
-
-
