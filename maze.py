@@ -246,19 +246,18 @@ class HouseMaze:
         self.task_runner = task_runner
         self.action_spec = action_spec
 
-    def action_space(self) -> spaces.Discrete:
+    def action_space(self, params: Optional[EnvParams] = None) -> spaces.Discrete:
         """Action space of the environment."""
-        return spaces.Discrete(self.num_actions)
+        return spaces.Discrete(self.num_actions(params))
 
-    @property
-    def num_actions(self):
+    def num_actions(self, params: Optional[EnvParams] = None):
         if self.action_spec == 'keyboard':
             return 4
         elif self.action_spec == 'minigrid':
             return 3
 
     def action_onehot(self, action):
-        num_actions = self.num_actions + 1
+        num_actions = self.num_actions() + 1
         one_hot = jnp.zeros((num_actions))
         one_hot = one_hot.at[action].set(1)
         return one_hot
@@ -360,7 +359,7 @@ class HouseMaze:
             task_state=task_state,
         )
 
-        reset_action = self.num_actions + 1
+        reset_action = self.num_actions() + 1
         timestep = TimeStep(
             state=state,
             step_type=StepType.FIRST,

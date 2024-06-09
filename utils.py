@@ -133,9 +133,6 @@ def from_str(
   assert agent_pos is not None
   assert agent_dir is not None
 
-  agent_pos = np.array(agent_pos)
-  agent_dir = np.array(agent_dir)
-
   return grid, agent_pos, agent_dir
 
 
