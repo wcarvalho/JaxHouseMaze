@@ -1,9 +1,9 @@
 # housemaze
 
-This is a simple maze environment where you can easily describe maps with strings. The map can either be symbolic, where each tile is represented by the category at that time, or it can be visual, where images for categories can be loaded in via a `image_data.pkl` file.
+This is a simple maze environment where you can easily describe maps with strings. The map can either be symbolic, where each tile is represented by the category at that tile, or it can be visual, where images for tile-categories are load from a `image_data.pkl` file.
 
 For example, the following string and dicionary:
-```
+``` python
 maze = """
 .#.C...##....
 .#..D...####.
@@ -18,6 +18,7 @@ A..#.##..#...
 ......####.#.
 .######E.#.#.
 ........F#...
+"""
 
 char_to_key=dict(
     A="knife",
@@ -27,8 +28,8 @@ char_to_key=dict(
     E="bowl",
     F="plates",
 )
-"""
-````
+```
+
 can render the following image:
 
 <img src="example.png" alt="FARM" style="zoom:40%;" />

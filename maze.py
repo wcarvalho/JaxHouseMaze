@@ -4,8 +4,10 @@ from typing import Optional, List, Callable, Tuple
 from enum import IntEnum
 from gymnax.environments import spaces
 from flax import struct
+from functools import partial
 import jax
 import jax.numpy as jnp
+import distrax
 
 
 Grid = jax.Array
@@ -166,10 +168,33 @@ class TimeStep(struct.PyTreeNode):
         return self.step_type == StepType.LAST
 
 
-def make_observation():
-   return Observation(
+def make_binary_vector(obj, num_categories):
+    binary_vector = jnp.zeros(num_categories)
 
-   )
+    # Extract the category and color vectors from the obj
+    category_idx = obj[0]
+
+    # Set the corresponding indices in the binary vector to 1
+    binary_vector = binary_vector.at[category_idx].set(1)
+
+    return binary_vector
+
+
+def position_to_two_hot(agent_position, grid_shape):
+    # Extract the position and grid dimensions
+    y, x = agent_position
+    max_y, max_x = grid_shape
+
+    # Initialize one-hot vectors
+    one_hot_x = jnp.zeros(max_x)
+    one_hot_y = jnp.zeros(max_y)
+
+    # Set the corresponding positions to 1
+    one_hot_x = one_hot_x.at[x].set(1)
+    one_hot_y = one_hot_y.at[y].set(1)
+
+    return jnp.concatenate((one_hot_x, one_hot_y))
+
 
 
 def take_action(
@@ -213,29 +238,65 @@ class HouseMaze:
 
     def __init__(
             self,
+            num_categories: int,
             task_runner: TaskRunner,
             action_spec: str = 'keyboard',
     ):
+        self.num_categories = num_categories
         self.task_runner = task_runner
         self.action_spec = action_spec
 
-    def action_space(
-        self, params: Optional[EnvParams] = None
-    ) -> spaces.Discrete:
+    def action_space(self) -> spaces.Discrete:
         """Action space of the environment."""
-        return spaces.Discrete(self.num_actions(params))
+        return spaces.Discrete(self.num_actions)
 
-    def num_actions(self, params):
-        del params
+    @property
+    def num_actions(self):
         if self.action_spec == 'keyboard':
             return 4
         elif self.action_spec == 'minigrid':
             return 3
 
+    def action_onehot(self, action):
+        num_actions = self.num_actions + 1
+        one_hot = jnp.zeros((num_actions))
+        one_hot = one_hot.at[action].set(1)
+        return one_hot
+
+    def make_observation(
+            self,
+            state: EnvState,
+            prev_action: jax.Array):
+        """This converts all inputs into binary vectors. this faciitates processing with a neural network."""
+
+        grid = state.grid
+        agent_pos = state.agent_pos
+        agent_dir = state.agent_dir
+
+        # direction
+        direction = jnp.zeros((len(DIR_TO_VEC)))
+        direction = direction.at[agent_dir].set(1)
+
+        make_binary_vector_ = lambda g: make_binary_vector(g, num_categories=self.num_categories)
+
+        make_binary_vector_grid = jax.vmap(jax.vmap(make_binary_vector_))
+
+        observation = Observation(
+            image=make_binary_vector_grid(grid),
+            state_features=state.task_state.features.astype(jnp.float32),
+            task_w=state.task_w.astype(jnp.float32),
+            direction=direction,
+            position=position_to_two_hot(agent_pos, grid.shape[:2]),
+            prev_action=self.action_onehot(prev_action),
+        )
+        # just to be safe?
+        observation = jax.tree_map(lambda x: jax.lax.stop_gradient(x), observation)
+
+        return observation
+
     def reset(self, rng: jax.Array, params: EnvParams) -> TimeStep:
         """
-        
-        1. Sample level.
+        Sample map and then sample random object in map as task object.
         """
         ##################
         # sample level
@@ -268,9 +329,13 @@ class HouseMaze:
         ##################
         # sample task object
         ##################
-        nobjects = len(params.objects)
-        object_idx = jax.random.randint(
-            rng_, shape=(), minval=0, maxval=nobjects)
+        present_objects = (grid == params.objects[None, None])
+        present_objects = present_objects.any(axis=(0,1))
+        #jax.debug.print("{x}", x=present_objects)
+        object_sampler = distrax.Categorical(
+            logits=present_objects.astype(jnp.float32))
+        rng, rng_ = jax.random.split(rng)
+        object_idx = object_sampler.sample(seed=rng_)
         task_object = jax.lax.dynamic_index_in_dim(
             params.objects, object_idx, keepdims=False,
         )
@@ -295,12 +360,15 @@ class HouseMaze:
             task_state=task_state,
         )
 
+        reset_action = self.num_actions + 1
         timestep = TimeStep(
             state=state,
             step_type=StepType.FIRST,
             reward=jnp.asarray(0.0),
             discount=jnp.asarray(1.0),
-            observation=None
+            observation=self.make_observation(
+                state,
+                prev_action=reset_action)
         )
         return timestep
 
@@ -343,6 +411,8 @@ class HouseMaze:
             step_type=step_type,
             reward=reward,
             discount=discount,
-            observation=None,
+            observation=self.make_observation(
+                state,
+                prev_action=action),
         )
         return timestep
