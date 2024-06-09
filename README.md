@@ -38,4 +38,4 @@ Images for categories are loaded from a `image_data.pkl` file that needs to have
 - `keys`
 - `images`
 
-Please see this [jupyter notebook](exmaple.ipdb) for an interactive example loading the environment.
+Please see this [jupyter notebook](exmaple.ipdb) for an interactive example loading the environment. One thing that's easy with this framework is loading in multiple mazes with different strings and then sampling between them when the environment resets. I give a simple example in the notebook.
