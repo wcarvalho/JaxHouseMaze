@@ -58,9 +58,9 @@ RL Algorithms in Jax
 - [JaxMARL](https://github.com/FLAIROx/JaxMARL): Lots of different multi-agent RL algorithms
 
 RL Environments in Jax
-- [JaxUED](https://github.com/DramaCow/jaxued/): Unsupervised Environment Design Library.
 - [Gymnax](https://github.com/RobertTLange/gymnax): Standard RL interface with several environments, such as classic control and MinAtar.
 - [JaxMARL](https://github.com/FLAIROx/JaxMARL): Lots of different multi-agent RL environments
+- [JaxUED](https://github.com/DramaCow/jaxued/): Unsupervised Environment Design Library.
 - [Jumanji](https://github.com/instadeepai/jumanji): Combinatorial Optimisation
 - [Pgx](https://github.com/sotetsuk/pgx): Board games, such as Chess and Go.
 - [Brax](https://github.com/google/brax): Continuous Control (like Mujoco), in Jax
