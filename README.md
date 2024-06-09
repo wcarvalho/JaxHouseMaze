@@ -48,7 +48,7 @@ Please see this [jupyter notebook](exmaple.ipdb) for an interactive example load
 
 
 ## Other projects usign JAX
-Here are some other libraries that also leverage Jax to obtain massive speedups in RL, which acted as inspiration for JaxUED.
+Here are some other libraries that also leverage Jax to obtain massive speedups in RL, which acted as inspiration for this codebase. In particularly, we heavily borrowed from [JaxUED](https://github.com/DramaCow/jaxued/) but mainly added a way to easily add object images to tiles and have multiple possible goals.
 
 RL Algorithms in Jax
 - [Minimax](https://github.com/facebookresearch/minimax): UED baselines, with support for multi-gpu training, and more parallel versions of PLR/ACCEL
@@ -58,6 +58,7 @@ RL Algorithms in Jax
 - [JaxMARL](https://github.com/FLAIROx/JaxMARL): Lots of different multi-agent RL algorithms
 
 RL Environments in Jax
+- [JaxUED](https://github.com/DramaCow/jaxued/)
 - [Gymnax](https://github.com/RobertTLange/gymnax): Standard RL interface with several environments, such as classic control and MinAtar.
 - [JaxMARL](https://github.com/FLAIROx/JaxMARL): Lots of different multi-agent RL environments
 - [Jumanji](https://github.com/instadeepai/jumanji): Combinatorial Optimisation
