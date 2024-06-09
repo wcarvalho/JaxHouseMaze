@@ -135,19 +135,26 @@ def from_str(
   return grid, agent_pos, agent_dir
 
 
-#class AutoResetWrapper(Wrapper):
+class AutoResetWrapper:
 
-#    def __auto_reset(self, key, params, timestep):
-#        key, key_ = jax.random.split(key)
-#        return self._env.reset(key_, params)
+    def __init__(self, env):
+        self._env = env
 
-#    def step(self,
-#             key: jax.random.KeyArray,
-#             prior_timestep,
-#             action,
-#             params):
-#        return jax.lax.cond(
-#            prior_timestep.last(),
-#            lambda: self.__auto_reset(key, params, prior_timestep),
-#            lambda: self._env.step(key, prior_timestep, action, params),
-#        )
+    # provide proxy access to regular attributes of wrapped object
+    def __getattr__(self, name):
+        return getattr(self._env, name)
+
+    def __auto_reset(self, key, params, timestep):
+        key, key_ = jax.random.split(key)
+        return self._env.reset(key_, params)
+
+    def step(self,
+             key: jax.random.KeyArray,
+             prior_timestep,
+             action,
+             params):
+        return jax.lax.cond(
+            prior_timestep.last(),
+            lambda: self.__auto_reset(key, params, prior_timestep),
+            lambda: self._env.step(key, prior_timestep, action, params),
+        )

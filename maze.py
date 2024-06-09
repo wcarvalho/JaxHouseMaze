@@ -57,12 +57,12 @@ class ResetParams:
     train_objects: jax.Array
     test_objects: jax.Array
     starting_locs: Optional[jax.Array] = None
-    curriculum: bool = False
+    curriculum: jax.Array = jnp.array(False)
 
 
 @struct.dataclass
 class EnvParams:
-    reset_params: List[ResetParams]
+    reset_params: ResetParams
     time_limit: int = 250
     training: bool = True
 
@@ -148,7 +148,6 @@ class EnvState:
     agent_dir: int
 
     # task info
-    task_runner: TaskRunner
     reset_params_idx: jax.Array
     task_w: jax.Array
     offtask_w: Optional[jax.Array] = None
@@ -191,7 +190,7 @@ def minigrid_take_action(
     fwd_pos = jnp.minimum(
         jnp.maximum(agent_pos + (action == MinigridActions.forward)
                     * DIR_TO_VEC[agent_dir], 0),
-        jnp.array([grid.shape[0]-1, grid.shape[1]-1], dtype=jnp.uint32)
+        jnp.array([grid.shape[0]-1, grid.shape[1]-1], dtype=jnp.int32)
     )
 
     # Can't go past wall
@@ -199,7 +198,7 @@ def minigrid_take_action(
     fwd_pos_has_wall = wall_map[fwd_pos[0], fwd_pos[1]]
 
     agent_pos = (fwd_pos_has_wall*state.agent_pos +
-                 (~fwd_pos_has_wall)*fwd_pos).astype(jnp.uint32)
+                 (~fwd_pos_has_wall)*fwd_pos).astype(jnp.int32)
 
     # automatically "collect" (remove object) once go over it.
     # do so by setting to empty cell
@@ -217,10 +216,10 @@ class HouseMaze:
 
     def __init__(
             self,
-            task_runner_cls: TaskRunner = TaskRunner,
+            task_runner: TaskRunner,
             action_spec: str = 'keyboard',
             ):
-        self.task_runner_cls = task_runner_cls
+        self.task_runner = task_runner
         self.action_spec = action_spec
 
     def action_space(
@@ -244,10 +243,12 @@ class HouseMaze:
         ##################
         # sample level
         ##################
-        nlevels = len(params.reset_params)
+        nlevels = len(params.reset_params.curriculum)
         rng, rng_ = jax.random.split(rng)
         reset_params_idx = jax.random.randint(rng_, shape=(), minval=0, maxval=nlevels)
-        reset_params = params.reset_params[reset_params_idx]
+
+        index = lambda p: jax.lax.dynamic_index_in_dim(p, reset_params_idx, keepdims=False)
+        reset_params = jax.tree_map(index, params.reset_params)
 
         grid = reset_params.map_init.grid
         agent_dir = reset_params.map_init.agent_dir
@@ -309,13 +310,10 @@ class HouseMaze:
         ##################
         # create task vectors
         ##################
-        task_objects = jnp.concatenate(
-            (reset_params.train_objects, reset_params.test_objects))
-        task_runner = self.task_runner_cls(task_objects)
 
-        task_w = task_runner.task_vector(task_object)
-        offtask_w = task_runner.task_vector(offtask_object)
-        task_state = task_runner.reset(grid, agent_pos)
+        task_w = self.task_runner.task_vector(task_object)
+        offtask_w = self.task_runner.task_vector(offtask_object)
+        task_state = self.task_runner.reset(grid, agent_pos)
 
         ##################
         # create ouputs
@@ -329,7 +327,6 @@ class HouseMaze:
             reset_params_idx=reset_params_idx,
             task_w=task_w,
             offtask_w=offtask_w,
-            task_runner=task_runner,
             task_state=task_state,
         )
 
@@ -355,8 +352,7 @@ class HouseMaze:
         else:
             raise NotImplementedError(self.action_spec)
 
-
-        task_state = timestep.state.task_runner.step(
+        task_state = self.task_runner.step(
             timestep.state.task_state, grid, agent_pos)
 
         state = timestep.state.replace(
@@ -367,7 +363,9 @@ class HouseMaze:
         )
 
         terminated = (task_state.features > 0).any()  # any object picked up
-        reward = (timestep.state.task_w*task_state.features).sum(-1)
+        task_w = timestep.state.task_w.astype(jnp.float32)
+        features = task_state.features.astype(jnp.float32)
+        reward = (task_w*features).sum(-1)
         truncated = jnp.equal(state.step_num, params.time_limit)
 
         step_type = jax.lax.select(
