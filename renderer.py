@@ -1,8 +1,6 @@
-import pickle
 import numpy as np
 import jax
 import jax.numpy as jnp
-import chex
 
 from functools import partial
 
@@ -68,35 +66,6 @@ def replace_color(image, old_color, new_color):
     image[mask] = new_color
 
     return image
-
-def load_image_dict(file: str, add_borders: bool = False):
-    if not add_borders:
-        add_border = lambda x: x
-
-    with open(file, 'rb') as f:
-        image_dict = pickle.load(f)
-
-    tile_size = image_dict['images'].shape[-2]
-
-    images = image_dict['images']
-
-    new_images = []
-    for image in images:
-        image = replace_color(image, (255, 255, 255), (0, 0, 0))
-        image = add_border(image)
-    new_images = np.array(new_images)
-
-    extra_keys = [
-        ('wall', np.tile([100, 100, 100], (tile_size, tile_size, 1))),
-        ('empty', add_border(np.tile([0, 0, 0], (tile_size, tile_size, 1)))),
-    ]
-
-    for key, img in extra_keys:
-        assert not key in image_dict['keys']
-        image_dict['keys'] = [key] + image_dict['keys']
-        image_dict['images'] = jnp.concatenate((img[None], image_dict['images']))
-
-    return image_dict
 
 def create_image_grid_from_image_tensor(images, max_cols: int = 10):
     num_images = images.shape[0]

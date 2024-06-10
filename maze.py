@@ -2,7 +2,6 @@ from typing import Optional, List, Callable, Tuple
 
 
 from enum import IntEnum
-from gymnax.environments import spaces
 from flax import struct
 from functools import partial
 import jax
@@ -246,15 +245,19 @@ class HouseMaze:
         self.task_runner = task_runner
         self.action_spec = action_spec
 
-    def action_space(self, params: Optional[EnvParams] = None) -> spaces.Discrete:
-        """Action space of the environment."""
-        return spaces.Discrete(self.num_actions(params))
+    def action_enum(self):
+        if self.action_spec == 'keyboard':
+            return KeyboardActions
+        elif self.action_spec == 'minigrid':
+            return MinigridActions
 
     def num_actions(self, params: Optional[EnvParams] = None):
         if self.action_spec == 'keyboard':
             return 4
         elif self.action_spec == 'minigrid':
             return 3
+        else:
+            raise NotImplementedError(self.action_spec)
 
     def action_onehot(self, action):
         num_actions = self.num_actions() + 1

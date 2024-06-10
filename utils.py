@@ -1,9 +1,12 @@
 from typing import Optional
-import jax
-import jax.numpy as jnp
 from collections import deque
 
+import jax
+import jax.numpy as jnp
 import numpy as np
+import pickle
+
+from projects.humansf.housemaze.renderer import replace_color
 
 
 def sample_groups(
@@ -78,6 +81,36 @@ def find_optimal_path(grid, agent_pos, goal):
 
     return None
 
+
+def load_image_dict(file: str, add_borders: bool = False):
+    if not add_borders:
+        def add_border(x): return x
+
+    with open(file, 'rb') as f:
+        image_dict = pickle.load(f)
+
+    tile_size = image_dict['images'].shape[-2]
+
+    images = image_dict['images']
+
+    new_images = []
+    for image in images:
+        image = replace_color(image, (255, 255, 255), (0, 0, 0))
+        image = add_border(image)
+    new_images = np.array(new_images)
+
+    extra_keys = [
+        ('wall', np.tile([100, 100, 100], (tile_size, tile_size, 1))),
+        ('empty', add_border(np.tile([0, 0, 0], (tile_size, tile_size, 1)))),
+    ]
+
+    for key, img in extra_keys:
+        assert not key in image_dict['keys']
+        image_dict['keys'] = [key] + image_dict['keys']
+        image_dict['images'] = jnp.concatenate(
+            (img[None], image_dict['images']))
+
+    return image_dict
 
 def from_str(
         level_str: str,
@@ -159,3 +192,4 @@ class AutoResetWrapper:
             lambda: self.__auto_reset(key, params, prior_timestep),
             lambda: self._env.step(key, prior_timestep, action, params),
         )
+
