@@ -36,7 +36,7 @@ Images for categories are loaded from a `image_data.pkl` file that needs to have
 - `keys`
 - `images`
 
-Please see this [jupyter notebook](exmaple.ipdb) for an interactive example loading the environment. One thing that's easy with this framework is loading in multiple mazes with different strings and then sampling between them when the environment resets. I give a simple example in the notebook.
+Please see this [jupyter notebook](example.ipynb) for an interactive example loading the environment. One thing that's easy with this framework is loading in multiple mazes with different strings and then sampling between them when the environment resets. I give a simple example in the notebook.
 
 
 **Benefits of jax environment**:
@@ -45,7 +45,7 @@ Please see this [jupyter notebook](exmaple.ipdb) for an interactive example load
 3. useful for things like meta-rl or unsupervised environment design
 
 
-## Other projects usign JAX
+## Other projects using JAX
 Here are some other libraries that also leverage Jax to obtain massive speedups in RL, which acted as inspiration for this codebase. In particularly, we heavily borrowed from [JaxUED](https://github.com/DramaCow/jaxued/) but mainly added a way to easily add object images to tiles and have multiple possible goals.
 
 RL Algorithms in Jax
