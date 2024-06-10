@@ -56,7 +56,7 @@ class MapInit:
 class EnvParams:
     map_init: MapInit
     objects: jax.Array
-    time_limit: int = 250
+    time_limit: int = 100
 
 
 class TaskState(struct.PyTreeNode):
@@ -395,6 +395,7 @@ class HouseMaze:
             agent_pos=agent_pos,
             agent_dir=agent_dir,
             task_state=task_state,
+            step_num=timestep.state.step_num + 1,
         )
 
         task_w = timestep.state.task_w.astype(jnp.float32)
