@@ -7,7 +7,7 @@ pip install -r requirements.tx
 pip install -U jupyterlab matplotlib
 ```
 
-# Jax Jouse Maze
+# JAX House Maze
 This is a simple [JAX](https://github.com/google/jax) maze environment where you can easily describe maps with strings. The map can either be symbolic, where each tile is represented by the category at that tile, or it can be visual, where images for tile-categories are load from a `image_data.pkl` file.
 
 For example, the following string and dicionary:
