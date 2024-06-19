@@ -6,7 +6,19 @@ import jax.numpy as jnp
 import numpy as np
 import pickle
 
-from projects.humansf.housemaze.renderer import replace_color
+def replace_color(image, old_color, new_color):
+    # Convert the image and colors to JAX arrays if they aren't already
+    image = np.asarray(image)
+    old_color = np.asarray(old_color)
+    new_color = np.asarray(new_color)
+
+    # Create a mask where all pixels match the old_color
+    mask = np.all(image == old_color, axis=-1)
+
+    # Replace the color
+    image[mask] = new_color
+
+    return image
 
 
 def sample_groups(
@@ -183,7 +195,7 @@ class AutoResetWrapper:
         return self._env.reset(key_, params)
 
     def step(self,
-             key: jax.random.KeyArray,
+             key: jax.Array,
              prior_timestep,
              action,
              params):

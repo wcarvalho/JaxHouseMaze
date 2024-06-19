@@ -52,21 +52,6 @@ def add_border(tile):
         0, 0.031, 0, 1), (100, 100, 100))
     return fill_coords(new_tile, point_in_rect(0, 1, 0, 0.031), (100, 100, 100))
 
-
-def replace_color(image, old_color, new_color):
-    # Convert the image and colors to JAX arrays if they aren't already
-    image = np.asarray(image)
-    old_color = np.asarray(old_color)
-    new_color = np.asarray(new_color)
-
-    # Create a mask where all pixels match the old_color
-    mask = np.all(image == old_color, axis=-1)
-
-    # Replace the color
-    image[mask] = new_color
-
-    return image
-
 def create_image_grid_from_image_tensor(images, max_cols: int = 10):
     num_images = images.shape[0]
     img_height, img_width, channels = images[0].shape
