@@ -1,3 +1,13 @@
+# Install
+```
+conda create -n housemaze python=3.10 pip wheel -y
+conda activate housemaze
+pip install -r requirements.tx
+# if want to run jupyter lab and plot things
+pip install -U jupyterlab matplotlib
+```
+
+# Jax Jouse Maze
 This is a simple [JAX](https://github.com/google/jax) maze environment where you can easily describe maps with strings. The map can either be symbolic, where each tile is represented by the category at that tile, or it can be visual, where images for tile-categories are load from a `image_data.pkl` file.
 
 For example, the following string and dicionary:
@@ -44,14 +54,7 @@ Please see this [jupyter notebook](example.ipynb) for an interactive example loa
 2. can run many instances in parallel (e.g. 1000s of environments)
 3. useful for things like meta-rl or unsupervised environment design
 
-## Install
-```
-conda create -n housemaze python=3.10 pip wheel -y
-conda activate housemaze
-pip install -r requirements.tx
-# if want to run jupyter lab and plot things
-pip install -U jupyterlab matplotlib
-```
+
 
 ## Other projects using JAX
 Here are some other libraries that also leverage Jax to obtain massive speedups in RL, which acted as inspiration for this codebase. In particularly, we heavily borrowed from [JaxUED](https://github.com/DramaCow/jaxued/) but mainly added a way to easily add object images to tiles and have multiple possible goals.
