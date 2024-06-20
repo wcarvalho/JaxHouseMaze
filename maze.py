@@ -27,6 +27,7 @@ class MinigridActions(IntEnum):
     left = 0
     right = 1
     forward = 2
+    done = 3
 
 
 class KeyboardActions(IntEnum):
@@ -34,6 +35,7 @@ class KeyboardActions(IntEnum):
     down = 1
     left = 2
     up = 3
+    done = 4
 
 
 class Observation(struct.PyTreeNode):
@@ -240,10 +242,12 @@ class HouseMaze:
             num_categories: int,
             task_runner: TaskRunner,
             action_spec: str = 'keyboard',
+            use_done: bool = False,
     ):
         self.num_categories = num_categories
         self.task_runner = task_runner
         self.action_spec = action_spec
+        self.use_done = use_done
 
     def action_enum(self):
         if self.action_spec == 'keyboard':
@@ -253,9 +257,9 @@ class HouseMaze:
 
     def num_actions(self, params: Optional[EnvParams] = None):
         if self.action_spec == 'keyboard':
-            return 4
+            return 4  + int(self.use_done)
         elif self.action_spec == 'minigrid':
-            return 3
+            return 3  + int(self.use_done)
         else:
             raise NotImplementedError(self.action_spec)
 

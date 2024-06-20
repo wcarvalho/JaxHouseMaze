@@ -52,6 +52,7 @@ def add_border(tile):
         0, 0.031, 0, 1), (100, 100, 100))
     return fill_coords(new_tile, point_in_rect(0, 1, 0, 0.031), (100, 100, 100))
 
+
 def create_image_grid_from_image_tensor(images, max_cols: int = 10):
     num_images = images.shape[0]
     img_height, img_width, channels = images[0].shape
@@ -99,7 +100,7 @@ def make_agent_tile(direction: int, tile_size: int):
     elif direction == 3:
         return add_border(np.rot90(agent_tile, k=1))  # up
 
-def create_image_from_grid(grid, agent_pos, agent_dir, image_dict):
+def create_image_from_grid(grid, agent_pos, agent_dir, image_dict, include_objects: bool = True):
     # Assumes wall_index is the index for the wall image in image_dict['images']
     wall_index = image_dict['keys'].index('wall')
 
@@ -120,7 +121,10 @@ def create_image_from_grid(grid, agent_pos, agent_dir, image_dict):
     images = image_dict['images']
 
     # Use advanced indexing to map the grid indices to actual images
-    mapped_images = jax.vmap(lambda x: images[x])(new_grid_flat)
+    if not include_objects:
+        new_grid_flat = jnp.where(new_grid_flat > 1, 0, new_grid_flat)
+
+    new_grid_flat = jax.vmap(lambda x: images[x])(new_grid_flat)
 
     # Create the agent tile with the specified direction
     tile_size = images.shape[-2]
@@ -136,8 +140,8 @@ def create_image_from_grid(grid, agent_pos, agent_dir, image_dict):
     img_H, img_W, C = images.shape[1:]
 
     # Reshape and transpose to form the single image
-    # First, reshape mapped_images to (new_H, new_W, img_H, img_W, C)
-    reshaped_images = mapped_images.reshape(new_H, new_W, img_H, img_W, C)
+    # First, reshape new_grid_flat to (new_H, new_W, img_H, img_W, C)
+    reshaped_images = new_grid_flat.reshape(new_H, new_W, img_H, img_W, C)
     reshaped_images = reshaped_images.at[agent_y, agent_x].set(agent_tile)
 
     # Then, transpose to (new_H, img_H, new_W, img_W, C)
