@@ -300,13 +300,17 @@ class HouseMaze:
         #total_categories = self.total_categories
 
         # Convert direction to the right category integer. after [objects]
-        direction_category = num_object_categories + agent_dir
+        start = num_object_categories
+        direction_category = start + agent_dir
 
         # Convert position to the right category integer. after [objects, directions]
-        position_category = num_object_categories + num_directions + agent_pos[0] * H + agent_pos[1]
-
+        start = num_object_categories + num_directions
+        position_category = (
+            start + agent_pos[0],
+            start + H + agent_pos[1])
         # Convert prev_action to the right category integer. after [objects, directions, spatial positions]
-        prev_action_category = num_object_categories + num_directions + num_spatial_positions + prev_action
+        start = num_object_categories + num_directions + H + W
+        prev_action_category = start + prev_action
 
         observation = Observation(
             image=jnp.squeeze(state.grid).astype(jnp.int32),
