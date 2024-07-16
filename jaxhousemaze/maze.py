@@ -203,7 +203,7 @@ def take_action(
         action: jax.Array) -> jax.Array:
 
     grid = state.grid
-    agent_pos = state.agent_pos
+    agent_pos = jnp.asarray(state.agent_pos)
     agent_dir = state.agent_dir
 
     # Update agent position (forward action)
@@ -217,7 +217,7 @@ def take_action(
     wall_map = grid == 1
     fwd_pos_has_wall = wall_map[fwd_pos[0], fwd_pos[1]]
 
-    agent_pos = (fwd_pos_has_wall*state.agent_pos +
+    agent_pos = (fwd_pos_has_wall * agent_pos +
                  (~fwd_pos_has_wall)*fwd_pos).astype(jnp.int32)
 
     # automatically "collect" (remove object) once go over it.
