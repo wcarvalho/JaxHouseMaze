@@ -96,7 +96,8 @@ def find_optimal_path(grid, agent_pos, goal):
 
 
 def load_image_dict(file: str = None, add_borders: bool = False):
-    if file is None:
+
+    if file is None or file == '':
         current_file_path = os.path.abspath(__file__)
         current_directory = os.path.dirname(current_file_path)
         file = f"{current_directory}/image_data.pkl"
