@@ -1,5 +1,3 @@
-
-from enum import IntEnum
 from typing import Optional
 import jax
 import jax.numpy as jnp
@@ -22,6 +20,7 @@ class ResetParams:
     test_objects: jax.Array
     starting_locs: Optional[jax.Array] = None
     curriculum: jax.Array = jnp.array(False)
+    label: jax.Array = jnp.array(0)
 
 
 @struct.dataclass
@@ -30,7 +29,7 @@ class EnvParams:
     time_limit: int = 100
     p_test_sample_train: float = .5
     training: bool = True
-    terminate_with_done: bool = False
+    terminate_with_done: int = 0  # more relevant for web app
 
 
 
@@ -50,6 +49,7 @@ class EnvState:
     task_w: jax.Array
     is_train_task: jax.Array
     task_object: jax.Array
+    current_label: jax.Array
     offtask_w: jax.Array
     task_state: Optional[maze.TaskState] = None
 
@@ -69,6 +69,15 @@ def mask_sample(mask, rng):
 
 
 class HouseMaze(maze.HouseMaze):
+
+    def total_categories(self, params: EnvParams):
+        grid = params.reset_params.map_init.grid
+        H, W = grid.shape[-3:-1]
+        num_object_categories = self.num_categories
+        num_directions = len(maze.DIR_TO_VEC)
+        num_spatial_positions = H * W
+        num_actions = self.num_actions(params) + 1  # including reset action
+        return num_object_categories + num_directions + num_spatial_positions + num_actions
 
     def reset(self, rng: jax.Array, params: EnvParams) -> TimeStep:
         """
@@ -167,6 +176,7 @@ class HouseMaze(maze.HouseMaze):
             agent_pos=agent_pos,
             agent_dir=agent_dir,
             map_idx=reset_params_idx,
+            current_label=reset_params.label,
             task_w=task_w,
             task_object=task_object,
             offtask_w=offtask_w,

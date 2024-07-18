@@ -255,7 +255,7 @@ class HouseMaze:
         num_object_categories = self.num_categories
         num_directions = len(DIR_TO_VEC)
         num_spatial_positions = H * W
-        num_actions = self.num_actions(params)
+        num_actions = self.num_actions(params) + 1  # including reset action
         return num_object_categories + num_directions + num_spatial_positions + num_actions
 
     def action_enum(self):
@@ -391,7 +391,7 @@ class HouseMaze:
             task_state=task_state,
         )
 
-        reset_action = self.num_actions() + 1
+        reset_action = jnp.array(self.num_actions() + 1, dtype=jnp.int32)
         timestep = TimeStep(
             state=state,
             step_type=StepType.FIRST,
