@@ -1,3 +1,4 @@
+from typing import Tuple
 import numpy as np
 import jax
 import jax.numpy as jnp
@@ -100,7 +101,11 @@ def make_agent_tile(direction: int, tile_size: int):
     elif direction == 3:
         return add_border(np.rot90(agent_tile, k=1))  # up
 
-def create_image_from_grid(grid, agent_pos, agent_dir, image_dict, include_objects: bool = True):
+def create_image_from_grid(
+        grid: jnp.array,
+        agent_pos: Tuple[int],
+        agent_dir: int,
+        image_dict: dict, include_objects: bool = True):
     # Assumes wall_index is the index for the wall image in image_dict['images']
     wall_index = image_dict['keys'].index('wall')
 
