@@ -203,7 +203,7 @@ def take_action(
         action: jax.Array) -> jax.Array:
 
     grid = state.grid
-    agent_pos = state.agent_pos
+    agent_pos = jnp.asarray(state.agent_pos)
     agent_dir = state.agent_dir
 
     # Update agent position (forward action)
@@ -217,7 +217,7 @@ def take_action(
     wall_map = grid == 1
     fwd_pos_has_wall = wall_map[fwd_pos[0], fwd_pos[1]]
 
-    agent_pos = (fwd_pos_has_wall*state.agent_pos +
+    agent_pos = (fwd_pos_has_wall * agent_pos +
                  (~fwd_pos_has_wall)*fwd_pos).astype(jnp.int32)
 
     # automatically "collect" (remove object) once go over it.
@@ -249,6 +249,15 @@ class HouseMaze:
         self.action_spec = action_spec
         self.use_done = use_done
 
+    def total_categories(self, params: EnvParams):
+        grid = params.map_init.grid
+        H, W = grid.shape[-3:-1]
+        num_object_categories = self.num_categories
+        num_directions = len(DIR_TO_VEC)
+        num_spatial_positions = H * W
+        num_actions = self.num_actions(params)
+        return num_object_categories + num_directions + num_spatial_positions + num_actions
+
     def action_enum(self):
         if self.action_spec == 'keyboard':
             return KeyboardActions
@@ -270,34 +279,50 @@ class HouseMaze:
         return one_hot
 
     def make_observation(
-            self,
-            state: EnvState,
-            prev_action: jax.Array):
-        """This converts all inputs into binary vectors. this faciitates processing with a neural network."""
+        self,
+        state: EnvState,
+        prev_action: jax.Array):
+        """This converts all inputs into categoricals.
 
+        Categories are [objects, directions, spatial positions, actions]
+        """
         grid = state.grid
         agent_pos = state.agent_pos
         agent_dir = state.agent_dir
 
-        # direction
-        direction = jnp.zeros((len(DIR_TO_VEC)))
-        direction = direction.at[agent_dir].set(1)
+        # Compute the total number of categories
+        num_object_categories = self.num_categories
+        num_directions = len(DIR_TO_VEC)
+        H, W = grid.shape[-3:-1]
+        num_spatial_positions = H*W
 
-        make_binary_vector_ = lambda g: make_binary_vector(g, num_categories=self.num_categories)
+        #num_actions = self.num_actions()
+        #total_categories = self.total_categories
 
-        make_binary_vector_grid = jax.vmap(jax.vmap(make_binary_vector_))
+        # Convert direction to the right category integer. after [objects]
+        start = num_object_categories
+        direction_category = start + agent_dir
+
+        # Convert position to the right category integer. after [objects, directions]
+        start = num_object_categories + num_directions
+        position_category = (
+            start + agent_pos[0],
+            start + H + agent_pos[1])
+        # Convert prev_action to the right category integer. after [objects, directions, spatial positions]
+        start = num_object_categories + num_directions + H + W
+        prev_action_category = start + prev_action
 
         observation = Observation(
-            image=make_binary_vector_grid(grid),
+            image=jnp.squeeze(state.grid).astype(jnp.int32),
             state_features=state.task_state.features.astype(jnp.float32),
             task_w=state.task_w.astype(jnp.float32),
-            direction=direction,
-            position=position_to_two_hot(agent_pos, grid.shape[:2]),
-            prev_action=self.action_onehot(prev_action),
+            direction=jnp.array(direction_category, dtype=jnp.int32),
+            position=jnp.array(position_category, dtype=jnp.int32),
+            prev_action=jnp.array(prev_action_category, dtype=jnp.int32),
         )
-        # just to be safe?
-        observation = jax.tree_map(lambda x: jax.lax.stop_gradient(x), observation)
 
+        # Just to be safe?
+        observation = jax.tree_map(lambda x: jax.lax.stop_gradient(x), observation)
         return observation
 
     def reset(self, rng: jax.Array, params: EnvParams) -> TimeStep:
