@@ -112,7 +112,7 @@ def make_int_array(x): return jnp.asarray(x, dtype=jnp.int32)
 def get_pretraining_reset_params(
     group_set,
     make_env_params: bool = False,
-    max_starting_locs: int = 10,
+    max_starting_locs: int = 16,
     ):
     pretrain_level = default_levels.two_objects
     list_of_reset_params = []
@@ -143,16 +143,22 @@ def get_maze_reset_params(
         group_set,
         maze_str,
         char2key,
-        num_starting_locs: int = 4,
-        max_starting_locs: int = 10,
+        num_starting_locs: int = 8,
+        max_starting_locs: int = 16,
         make_env_params: bool = False,
         curriculum: bool = False,
+        label: jnp.ndarray = jnp.array(0),
+        **kwargs,
     ):
     train_objects = group_set[:, 0]
     test_objects = group_set[:, 1]
+    map_init = maze.MapInit(*from_str(
+        maze_str,
+        char_to_key=char2key))
 
     all_starting_locs = np.ones(
         (len(group_set), max_starting_locs, 2))*-1
+
     if curriculum:
         for idx, goal in enumerate(train_objects):
             path = find_optimal_path(
@@ -161,9 +167,6 @@ def get_maze_reset_params(
             starting_locs = np.array([path[i] for i in range(0, len(path), width)])
             all_starting_locs[idx, :len(starting_locs)] = starting_locs
 
-    map_init = maze.MapInit(*from_str(
-        maze_str,
-        char_to_key=char2key))
     reset_params = make_reset_params(
         map_init=map_init,
         train_objects=train_objects,
@@ -171,6 +174,8 @@ def get_maze_reset_params(
         max_objects=len(group_set),
         starting_locs=make_int_array(all_starting_locs),
         curriculum=jnp.array(curriculum),
+        label=label,
+        **kwargs,
     )
     if make_env_params:
         return maze.EnvParams(
