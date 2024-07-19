@@ -30,6 +30,7 @@ class EnvParams:
     p_test_sample_train: float = .5
     training: bool = True
     terminate_with_done: int = 0  # more relevant for web app
+    randomize_agent: bool = False
 
 
 
@@ -116,12 +117,15 @@ class HouseMaze(maze.HouseMaze):
             return loc
 
         rng, rng_ = jax.random.split(rng)
-        agent_pos = jax.lax.cond(
-            jnp.logical_and(reset_params.curriculum, params.training),
-            sample_pos_from_curriculum,
-            lambda _: reset_params.map_init.agent_pos,
-            rng_
-        )
+        if params.randomize_agent:
+            import ipdb; ipdb.set_trace()
+        else:
+            agent_pos = jax.lax.cond(
+                jnp.logical_and(reset_params.curriculum, params.training),
+                sample_pos_from_curriculum,
+                lambda _: reset_params.map_init.agent_pos,
+                rng_
+            )
 
         ##################
         # sample task objects

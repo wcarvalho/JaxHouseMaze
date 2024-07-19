@@ -6,7 +6,7 @@ setup(
     version="0.0.1",
     packages=find_packages(),
     install_requires=[
-        "jax>=0.4.23",
+        "jax>=0.4.16",
         "distrax>=0.1.5",
         "flax>=0.8.2",
         "numpy>=1.26.4"
