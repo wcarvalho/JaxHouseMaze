@@ -119,24 +119,38 @@ class HouseMaze(maze.HouseMaze):
             return loc
 
         rng, rng_ = jax.random.split(rng)
-        if jnp.logical_and(params.randomize_agent, reset_params.randomize_agent):
+        def sample_random():
             empty_spaces = grid == 0
             y_coords, x_coords, _ = jnp.where(empty_spaces)
             num_empty = len(y_coords)
             rng, rng_ = jax.random.split(rng)
             indices = jax.random.choice(
                 rng_, num_empty, replace=False)
-
-            sampled_y = y_coords[indices]
-            sampled_x = x_coords[indices]
+            sampled_y = jax.lax.dynamic_index_in_dim(
+                y_coords, indices, keepdims=False)
+            sampled_x = jax.lax.dynamic_index_in_dim(
+                x_coords, indices, keepdims=False)
             agent_pos = jnp.stack([sampled_y, sampled_x], axis=-1)
-        else:
+
+            return agent_pos
+        def sample_normal()
             agent_pos = jax.lax.cond(
                 jnp.logical_and(reset_params.curriculum, params.training),
                 sample_pos_from_curriculum,
                 lambda _: reset_params.map_init.agent_pos,
                 rng_
             )
+            return agent_pos
+
+        agent_pos = jax.lax.cond(
+            jnp.logical_and(params.randomize_agent, reset_params.randomize_agent),
+            sample_random,
+            sample_normal,
+        )
+
+
+        if :
+        else:
 
         ##################
         # sample task objects
