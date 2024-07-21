@@ -113,44 +113,45 @@ class HouseMaze(maze.HouseMaze):
         def sample_pos_from_curriculum(rng_):
             locs = jax.lax.dynamic_index_in_dim(
                 reset_params.starting_locs, pair_idx, keepdims=False)
-            loc_idx = mask_sample(mask=(locs >= 0).all(-1), rng=rng)
+            loc_idx = mask_sample(mask=(locs >= 0).all(-1), rng=rng_)
             loc = jax.lax.dynamic_index_in_dim(
                 locs, loc_idx, keepdims=False)
             return loc
 
-        rng, rng_ = jax.random.split(rng)
-        def sample_random():
+        def sample_random(rng_, grid):
+            H, W = grid.shape[:2]
             empty_spaces = grid == 0
-            y_coords, x_coords, _ = jnp.where(empty_spaces)
-            num_empty = len(y_coords)
-            rng, rng_ = jax.random.split(rng)
-            indices = jax.random.choice(
-                rng_, num_empty, replace=False)
-            sampled_y = jax.lax.dynamic_index_in_dim(
-                y_coords, indices, keepdims=False)
-            sampled_x = jax.lax.dynamic_index_in_dim(
-                x_coords, indices, keepdims=False)
-            agent_pos = jnp.stack([sampled_y, sampled_x], axis=-1)
 
-            return agent_pos
-        def sample_normal()
-            agent_pos = jax.lax.cond(
-                jnp.logical_and(reset_params.curriculum, params.training),
-                sample_pos_from_curriculum,
-                lambda _: reset_params.map_init.agent_pos,
-                rng_
+            # Choose a single index from the flattened array
+            inner_coords = jax.random.choice(
+                key=rng_,
+                shape=(1,),
+                a=jnp.arange(H * W),
+                replace=False,
+                # Flatten the empty_spaces mask and use it as probability distribution
+                p=empty_spaces.flatten()
             )
-            return agent_pos
 
+            # Convert the flattened index to y, x coordinates
+            y, x = jnp.divmod(inner_coords[0], W)
+
+            return jnp.array([y, x])
+
+
+        def sample_normal(rng_, reset_params, params):
+            return jax.lax.cond(
+                jnp.logical_and(reset_params.curriculum, params.training),
+                lambda: sample_pos_from_curriculum(rng_),
+                lambda: reset_params.map_init.agent_pos
+            )
+
+
+        rng, rng_ = jax.random.split(rng)
         agent_pos = jax.lax.cond(
             jnp.logical_and(params.randomize_agent, reset_params.randomize_agent),
-            sample_random,
-            sample_normal,
+            lambda: sample_random(rng_, grid),
+            lambda: sample_normal(rng_, reset_params, params)
         )
-
-
-        if :
-        else:
 
         ##################
         # sample task objects
