@@ -21,6 +21,7 @@ class ResetParams:
     starting_locs: Optional[jax.Array] = None
     curriculum: jax.Array = jnp.array(False)
     label: jax.Array = jnp.array(0)
+    randomize_agent: bool = jnp.array(False)
 
 
 @struct.dataclass
@@ -88,12 +89,13 @@ class HouseMaze(maze.HouseMaze):
         ##################
         # sample level
         ##################
-        nlevels = len(params.reset_params.train_objects)
+        nlevels = len(params.reset_params.curriculum)
         rng, rng_ = jax.random.split(rng)
         reset_params_idx = jax.random.randint(
             rng_, shape=(), minval=0, maxval=nlevels)
 
-        def index(p): return jax.lax.dynamic_index_in_dim(
+        def index(p):
+            return jax.lax.dynamic_index_in_dim(
             p, reset_params_idx, keepdims=False)
         reset_params = jax.tree_map(index, params.reset_params)
 
@@ -117,8 +119,17 @@ class HouseMaze(maze.HouseMaze):
             return loc
 
         rng, rng_ = jax.random.split(rng)
-        if params.randomize_agent:
-            import ipdb; ipdb.set_trace()
+        if jnp.logical_and(params.randomize_agent, reset_params.randomize_agent):
+            empty_spaces = grid == 0
+            y_coords, x_coords, _ = jnp.where(empty_spaces)
+            num_empty = len(y_coords)
+            rng, rng_ = jax.random.split(rng)
+            indices = jax.random.choice(
+                rng_, num_empty, replace=False)
+
+            sampled_y = y_coords[indices]
+            sampled_x = x_coords[indices]
+            agent_pos = jnp.stack([sampled_y, sampled_x], axis=-1)
         else:
             agent_pos = jax.lax.cond(
                 jnp.logical_and(reset_params.curriculum, params.training),

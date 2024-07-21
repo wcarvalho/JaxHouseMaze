@@ -296,9 +296,6 @@ class HouseMaze:
         H, W = grid.shape[-3:-1]
         num_spatial_positions = H*W
 
-        #num_actions = self.num_actions()
-        #total_categories = self.total_categories
-
         # Convert direction to the right category integer. after [objects]
         start = num_object_categories
         direction_category = start + agent_dir
