@@ -143,7 +143,6 @@ def dfs(grid, agent_pos, goal, key, budget=1e8):
     
     return None, iterations
 
-
 def actions_from_path(path):
     if path is None or len(path) < 2:
         return np.array([KeyboardActions.done])
