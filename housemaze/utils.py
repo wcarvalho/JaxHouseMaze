@@ -127,7 +127,6 @@ def dfs(grid, agent_pos, goal, key, budget=1e8):
         
         # Shuffle the order of directions (optional)
         directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
-        key, subkey = jax.random.split(key)
         directions = jax.random.permutation(subkey, jnp.array(directions))
         
         for dx, dy in directions:
