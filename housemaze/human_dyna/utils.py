@@ -15,7 +15,7 @@ def load_groups(file: str = None):
         current_file_path = os.path.abspath(__file__)
         current_directory = os.path.dirname(current_file_path)
         file = f"{current_directory}/list_of_groups.npy"
-        print(f"No file specified for image dict.\nUsing: {file}")
+        print(f"No file specified for groups.\nUsing: {file}")
     return np.load(file)
 
 def make_reset_params(
