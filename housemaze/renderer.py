@@ -157,14 +157,21 @@ def create_image_from_grid(
     return final_image
 
 
-def place_arrows_on_image(image, positions, actions, env_state, offset=8, ax=None):
+def place_arrows_on_image(
+        image,
+        positions,
+        actions,
+        maze_height,
+        maze_width,
+        arrow_scale = 5,
+        ax=None):
     # Get the dimensions of the image and the maze
     image_height, image_width, _ = image.shape
-    maze_height, maze_width, _ = env_state.maze_map.shape
 
     # Calculate the scaling factors for mapping maze coordinates to image coordinates
-    scale_y = (image_height - offset) // maze_height
-    scale_x = (image_width - offset) // maze_width
+    scale_y = image_height // (maze_height+2)
+    scale_x = image_width // (maze_width+2)
+
 
     # Calculate the offset to account for the border of walls
     offset_y = (image_height - scale_y * maze_height) // 2
@@ -172,7 +179,7 @@ def place_arrows_on_image(image, positions, actions, env_state, offset=8, ax=Non
 
     # Create a figure and axis
     if ax is None:
-        fig, ax = plt.subplots(1, figsize=(8, 8))
+        fig, ax = plt.subplots(1, figsize=(5, 5))
 
     # Display the rendered image
     ax.imshow(image)
@@ -196,8 +203,11 @@ def place_arrows_on_image(image, positions, actions, env_state, offset=8, ax=Non
             continue  # Skip drawing an arrow for the 'done' action
 
         # Draw the arrow on the image
-        ax.arrow(center_x, center_y, dx, dy, head_width=scale_x / 10,
-                 head_length=scale_y/10, fc='g', ec='g')
+        ax.arrow(center_x, center_y, dx, dy, 
+         head_width=scale_x / arrow_scale,
+         head_length=scale_y / arrow_scale, 
+         width=scale_x / (arrow_scale * 2),
+         fc='g', ec='g')
 
     # Remove the axis ticks and labels
     ax.set_xticks([])
