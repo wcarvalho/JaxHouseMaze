@@ -6,6 +6,7 @@ import jax.numpy as jnp
 import matplotlib.pyplot as plt
 
 from functools import partial
+from housemaze.maze import KeyboardActions
 
 def point_in_rect(xmin, xmax, ymin, ymax):
     def fn(x, y):
@@ -155,7 +156,8 @@ def create_image_from_grid(
 
     return final_image
 
-def show_path_to_goal(image, start_pos, actions, env_state, offset=8, ax=None):
+
+def place_arrows_on_image(image, positions, actions, env_state, offset=8, ax=None):
     # Get the dimensions of the image and the maze
     image_height, image_width, _ = image.shape
     maze_height, maze_width, _ = env_state.maze_map.shape
@@ -168,57 +170,36 @@ def show_path_to_goal(image, start_pos, actions, env_state, offset=8, ax=None):
     offset_y = (image_height - scale_y * maze_height) // 2
     offset_x = (image_width - scale_x * maze_width) // 2
 
-    # Create a figure and axis if not provided
+    # Create a figure and axis
     if ax is None:
         fig, ax = plt.subplots(1, figsize=(8, 8))
 
     # Display the rendered image
     ax.imshow(image)
 
-    # # Add grid lines
-    # for i in range(maze_height + 1):
-    #     ax.axhline(offset_y + i * scale_y, color='w', linewidth=0.5)
-    # for j in range(maze_width + 1):
-    #     ax.axvline(offset_x + j * scale_x, color='w', linewidth=0.5)
-
-    # Initialize the current position as the starting position
-    current_pos = (start_pos[1], start_pos[0])
-
-    # Iterate until the goal is reached
-    while current_pos in actions:
-        action = actions[current_pos]
-
+    # Iterate over each position and action
+    for (y, x), action in zip(positions, actions):
         # Calculate the center coordinates of the cell in the image
-        y, x = current_pos
         center_y = offset_y + (y + 0.5) * scale_y
         center_x = offset_x + (x + 0.5) * scale_x
 
         # Define the arrow directions based on the action
-        if action == 'up':
+        if action == KeyboardActions.up:
             dx, dy = 0, -scale_y / 2
-        elif action == 'down':
+        elif action == KeyboardActions.down:
             dx, dy = 0, scale_y / 2
-        elif action == 'left':
+        elif action == KeyboardActions.left:
             dx, dy = -scale_x / 2, 0
-        elif action == 'right':
+        elif action == KeyboardActions.right:
             dx, dy = scale_x / 2, 0
+        else:  # KeyboardActions.done
+            continue  # Skip drawing an arrow for the 'done' action
 
         # Draw the arrow on the image
-        ax.arrow(center_x, center_y, dx, dy, head_width=scale_x /
-                 10, head_length=scale_y/8, fc='g', ec='g')
-
-        # Update the current position based on the action
-        if action == 'up':
-            current_pos = (y - 1, x)
-        elif action == 'down':
-            current_pos = (y + 1, x)
-        elif action == 'left':
-            current_pos = (y, x - 1)
-        elif action == 'right':
-            current_pos = (y, x + 1)
+        ax.arrow(center_x, center_y, dx, dy, head_width=scale_x / 10,
+                 head_length=scale_y/10, fc='g', ec='g')
 
     # Remove the axis ticks and labels
     ax.set_xticks([])
     ax.set_yticks([])
-
     return ax

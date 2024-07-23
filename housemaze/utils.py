@@ -6,6 +6,7 @@ import os.path
 import jax.numpy as jnp
 import numpy as np
 import pickle
+from housemaze.maze import KeyboardActions
 
 def replace_color(image, old_color, new_color):
     # Convert the image and colors to JAX arrays if they aren't already
@@ -104,7 +105,7 @@ def bfs(grid, agent_pos, goal, key, budget=1e8):
                 new_path = path + [(new_x, new_y)]
                 iterations += 1
                 queue.append(((new_x, new_y), new_path))
-    
+
     return None, iterations
 
 def dfs(grid, agent_pos, goal, key, budget=1e8):
@@ -142,6 +143,31 @@ def dfs(grid, agent_pos, goal, key, budget=1e8):
                 stack.append(((new_x, new_y), new_path))
     
     return None, iterations
+
+
+def actions_from_path(path):
+    if path is None or len(path) < 2:
+        return np.array([KeyboardActions.done])
+
+    actions = []
+    for i in range(1, len(path)):
+        prev_pos = path[i-1]
+        curr_pos = path[i]
+
+        dx = curr_pos[0] - prev_pos[0]
+        dy = curr_pos[1] - prev_pos[1]
+
+        if dx == 1:
+            actions.append(KeyboardActions.down)
+        elif dx == -1:
+            actions.append(KeyboardActions.up)
+        elif dy == 1:
+            actions.append(KeyboardActions.right)
+        elif dy == -1:
+            actions.append(KeyboardActions.left)
+
+    actions.append(KeyboardActions.done)
+    return np.array(actions)
 
 def load_image_dict(file: str = None, add_borders: bool = False):
 
