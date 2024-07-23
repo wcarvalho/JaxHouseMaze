@@ -3,6 +3,8 @@ import numpy as np
 import jax
 import jax.numpy as jnp
 
+import matplotlib.pyplot as plt
+
 from functools import partial
 
 def point_in_rect(xmin, xmax, ymin, ymax):
@@ -47,12 +49,10 @@ def point_in_triangle(a, b, c):
 
     return fn
 
-
 def add_border(tile):
     new_tile = fill_coords(tile, point_in_rect(
         0, 0.031, 0, 1), (100, 100, 100))
     return fill_coords(new_tile, point_in_rect(0, 1, 0, 0.031), (100, 100, 100))
-
 
 def create_image_grid_from_image_tensor(images, max_cols: int = 10):
     num_images = images.shape[0]
@@ -79,7 +79,6 @@ def create_image_grid_from_image_tensor(images, max_cols: int = 10):
         canvas = canvas.at[row_start:row_end, col_start:col_end, :].set(image)
 
     return canvas
-
 
 def make_agent_tile(direction: int, tile_size: int):
     TRI_COORDS = np.array([
@@ -155,3 +154,71 @@ def create_image_from_grid(
     final_image = transposed_images.reshape(new_H * img_H, new_W * img_W, C)
 
     return final_image
+
+def show_path_to_goal(image, start_pos, actions, env_state, offset=8, ax=None):
+    # Get the dimensions of the image and the maze
+    image_height, image_width, _ = image.shape
+    maze_height, maze_width, _ = env_state.maze_map.shape
+
+    # Calculate the scaling factors for mapping maze coordinates to image coordinates
+    scale_y = (image_height - offset) // maze_height
+    scale_x = (image_width - offset) // maze_width
+
+    # Calculate the offset to account for the border of walls
+    offset_y = (image_height - scale_y * maze_height) // 2
+    offset_x = (image_width - scale_x * maze_width) // 2
+
+    # Create a figure and axis if not provided
+    if ax is None:
+        fig, ax = plt.subplots(1, figsize=(8, 8))
+
+    # Display the rendered image
+    ax.imshow(image)
+
+    # # Add grid lines
+    # for i in range(maze_height + 1):
+    #     ax.axhline(offset_y + i * scale_y, color='w', linewidth=0.5)
+    # for j in range(maze_width + 1):
+    #     ax.axvline(offset_x + j * scale_x, color='w', linewidth=0.5)
+
+    # Initialize the current position as the starting position
+    current_pos = (start_pos[1], start_pos[0])
+
+    # Iterate until the goal is reached
+    while current_pos in actions:
+        action = actions[current_pos]
+
+        # Calculate the center coordinates of the cell in the image
+        y, x = current_pos
+        center_y = offset_y + (y + 0.5) * scale_y
+        center_x = offset_x + (x + 0.5) * scale_x
+
+        # Define the arrow directions based on the action
+        if action == 'up':
+            dx, dy = 0, -scale_y / 2
+        elif action == 'down':
+            dx, dy = 0, scale_y / 2
+        elif action == 'left':
+            dx, dy = -scale_x / 2, 0
+        elif action == 'right':
+            dx, dy = scale_x / 2, 0
+
+        # Draw the arrow on the image
+        ax.arrow(center_x, center_y, dx, dy, head_width=scale_x /
+                 10, head_length=scale_y/8, fc='g', ec='g')
+
+        # Update the current position based on the action
+        if action == 'up':
+            current_pos = (y - 1, x)
+        elif action == 'down':
+            current_pos = (y + 1, x)
+        elif action == 'left':
+            current_pos = (y, x - 1)
+        elif action == 'right':
+            current_pos = (y, x + 1)
+
+    # Remove the axis ticks and labels
+    ax.set_xticks([])
+    ax.set_yticks([])
+
+    return ax

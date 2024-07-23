@@ -253,12 +253,15 @@ class HouseMaze(maze.HouseMaze):
         terminated_done = action == self.action_enum().done
         # any object picked up
         terminated_features = (task_state.features > 0).any()
-        if params.terminate_with_done == 1:
-            terminated = terminated_done
-        elif params.terminate_with_done == 2:
-            terminated = terminated_features + terminated_done
-        else:
-            terminated = terminated_features
+        terminated = jax.lax.switch(
+            params.terminate_with_done,
+            (
+                lambda: terminated_features,
+                lambda: terminated_done,
+                lambda: terminated_features + terminated_done,
+            )
+        )
+        terminated = terminated >= 1
         task_w = timestep.state.task_w.astype(jnp.float32)
         features = task_state.features.astype(jnp.float32)
         reward = (task_w*features).sum(-1)
