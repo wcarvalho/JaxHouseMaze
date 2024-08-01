@@ -2,7 +2,7 @@ import jax.numpy as jnp
 import jax.tree_util as jtu
 import numpy as np
 from housemaze.human_dyna import env as maze
-from housemaze.human_dyna.utils import make_reset_params
+from housemaze.human_dyna.utils import make_reset_params, load_groups
 from housemaze.utils import from_str, find_optimal_path
 from housemaze import levels as default_levels
 
@@ -184,6 +184,24 @@ C.#......B...
 .>.......#...
 """.strip()
 
+
+def get_group_set(num_groups):
+    list_of_groups = load_groups()
+    full_group_set = list_of_groups[0]
+
+    chars = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
+    char2key = dict()
+    for idx, char in enumerate(chars):
+        i, j = idx // 2, idx % 2
+        if i > len(full_group_set):
+            break
+        char2key[char] = full_group_set[i, j]
+
+    assert num_groups <= 3
+    task_group_set = full_group_set[:num_groups]
+    task_objects = task_group_set.reshape(-1)
+
+    return char2key, task_group_set, task_objects
 
 def make_int_array(x): return jnp.asarray(x, dtype=jnp.int32)
 
