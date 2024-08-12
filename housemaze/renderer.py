@@ -92,14 +92,15 @@ def make_agent_tile(direction: int, tile_size: int):
     agent_tile = fill_coords(
         agent_tile, point_in_triangle(*TRI_COORDS), [255, 0, 0])
     add_border = lambda x:x
-    if direction == 0:
-        return add_border(agent_tile)  # right
-    elif direction == 1:
-        return add_border(np.rot90(agent_tile, k=3))  # down
-    elif direction == 2:
-        return add_border(np.rot90(agent_tile, k=2))  # left
-    elif direction == 3:
-        return add_border(np.rot90(agent_tile, k=1))  # up
+    return jax.lax.switch(
+        direction,
+        (
+        lambda: add_border(agent_tile),  # right
+        lambda: add_border(np.rot90(agent_tile, k=3)),  #down
+        lambda: add_border(np.rot90(agent_tile, k=2)),  # left
+        lambda: add_border(np.rot90(agent_tile, k=1))  # up
+        )
+    )
 
 def create_image_from_grid(
         grid: jnp.array,

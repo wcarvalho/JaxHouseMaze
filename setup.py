@@ -9,7 +9,8 @@ setup(
         "jax>=0.4.16",
         "distrax>=0.1.5",
         "flax>=0.8.2",
-        "numpy>=1.26.4"
+        "numpy>=1.26.4",
+        "matplotlib"
     ],
     author="Wilka Carvalho",
     author_email="wcarvalho92@gmail.com",

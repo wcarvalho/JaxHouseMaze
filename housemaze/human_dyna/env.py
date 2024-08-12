@@ -56,6 +56,23 @@ class EnvState:
     task_state: Optional[maze.TaskState] = None
 
 
+class TimeStep(struct.PyTreeNode):
+    state: EnvState
+
+    step_type: StepType
+    reward: jax.Array
+    discount: jax.Array
+    observation: maze.Observation
+
+    def first(self):
+        return self.step_type == StepType.FIRST
+
+    def mid(self):
+        return self.step_type == StepType.MID
+
+    def last(self):
+        return self.step_type == StepType.LAST
+
 def mask_sample(mask, rng):
     # Creating logits based on the mask: -1e8 where mask is 0, 1 where mask is 1
     logits = jnp.where(mask == 1, mask.astype(jnp.float32), -1e8).astype(jnp.float32)

@@ -61,7 +61,8 @@ class EnvParams:
     time_limit: int = 100
 
 
-class TaskState(struct.PyTreeNode):
+@struct.dataclass
+class TaskState:
    features: jax.Array
    grid: jax.Array
 
