@@ -6,6 +6,7 @@ import os.path
 import jax.numpy as jnp
 import numpy as np
 import pickle
+from housemaze.maze import KeyboardActions
 
 def replace_color(image, old_color, new_color):
     # Convert the image and colors to JAX arrays if they aren't already
@@ -67,22 +68,34 @@ def sample_n_groups(
 
 
 def find_optimal_path(grid, agent_pos, goal):
+    rng = jax.random.PRNGKey(42)
+    return bfs(grid, agent_pos, goal, rng)[0]
+
+
+def bfs(grid, agent_pos, goal, key, budget=1e8):
     rows, cols, _ = grid.shape
     queue = deque([(agent_pos, [agent_pos])])
     visited = set()
+    iterations = 0
 
     while queue:
+        key, subkey = jax.random.split(key)
+        iterations += 1
+        if iterations >= budget:
+           return None, iterations
+
         current_pos, path = queue.popleft()
-
         if grid[current_pos[0], current_pos[1], 0] == goal:
-
-            return np.array([p for p in path])
-
+            return jnp.array([p for p in path]), iterations
         visited.add(current_pos)
-
-        for dx, dy in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
-            new_x, new_y = current_pos[0] + dx, current_pos[1] + dy
-
+        
+        # Shuffle the order of directions
+        directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
+        key, subkey = jax.random.split(key)
+        directions = jax.random.permutation(subkey, jnp.array(directions))
+        
+        for dx, dy in directions:
+            new_x, new_y = int(current_pos[0] + dx), int(current_pos[1] + dy)
             if (
                 0 <= new_x < rows
                 and 0 <= new_y < cols
@@ -90,13 +103,73 @@ def find_optimal_path(grid, agent_pos, goal):
                 and grid[new_x, new_y, 0] != 1
             ):
                 new_path = path + [(new_x, new_y)]
+                iterations += 1
                 queue.append(((new_x, new_y), new_path))
 
-    return None
+    return None, iterations
 
+def dfs(grid, agent_pos, goal, key, budget=1e8):
+    rows, cols, _ = grid.shape
+    stack = deque([(agent_pos, [agent_pos])])
+    visited = set()
+    iterations = 0
+
+    while stack:
+        key, subkey = jax.random.split(key)
+        iterations += 1
+        if iterations >= budget:
+            return None, iterations
+
+        current_pos, path = stack.pop()  # Use pop to simulate stack (LIFO)
+        if grid[current_pos[0], current_pos[1], 0] == goal:
+            return jnp.array([p for p in path]), iterations
+        visited.add(current_pos)
+        
+        # Shuffle the order of directions (optional)
+        directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
+        directions = jax.random.permutation(subkey, jnp.array(directions))
+        
+        for dx, dy in directions:
+            new_x, new_y = int(current_pos[0] + dx), int(current_pos[1] + dy)
+            if (
+                0 <= new_x < rows
+                and 0 <= new_y < cols
+                and (new_x, new_y) not in visited
+                and grid[new_x, new_y, 0] != 1
+            ):
+                new_path = path + [(new_x, new_y)]
+                iterations += 1
+                stack.append(((new_x, new_y), new_path))
+    
+    return None, iterations
+
+def actions_from_path(path):
+    if path is None or len(path) < 2:
+        return np.array([KeyboardActions.done])
+
+    actions = []
+    for i in range(1, len(path)):
+        prev_pos = path[i-1]
+        curr_pos = path[i]
+
+        dx = curr_pos[0] - prev_pos[0]
+        dy = curr_pos[1] - prev_pos[1]
+
+        if dx == 1:
+            actions.append(KeyboardActions.down)
+        elif dx == -1:
+            actions.append(KeyboardActions.up)
+        elif dy == 1:
+            actions.append(KeyboardActions.right)
+        elif dy == -1:
+            actions.append(KeyboardActions.left)
+
+    actions.append(KeyboardActions.done)
+    return np.array(actions)
 
 def load_image_dict(file: str = None, add_borders: bool = False):
-    if file is None:
+
+    if file is None or file == '':
         current_file_path = os.path.abspath(__file__)
         current_directory = os.path.dirname(current_file_path)
         file = f"{current_directory}/image_data.pkl"

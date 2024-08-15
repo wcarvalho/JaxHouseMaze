@@ -1,0 +1,281 @@
+import jax.numpy as jnp
+import jax.tree_util as jtu
+import numpy as np
+from housemaze.human_dyna import env as maze
+from housemaze.human_dyna.utils import make_reset_params, load_groups
+from housemaze.utils import from_str, find_optimal_path
+from housemaze import levels as default_levels
+
+maze0 = """
+.....#...A#..
+.###.####.##.
+.#........F..
+.####.###.###
+.............
+######>#####.
+...B#........
+.##...##.####
+..#.#..#.E.#.
+#.#.##.###.#.
+#.#.C#.D.#...
+#.##.###.###.
+...#...#.#...
+""".strip()
+
+maze1 = """
+.#.C...##....
+.#..D...####.
+.######......
+......######.
+.#.#..#......
+.#.#.##..#...
+##.#.#>.###.#
+A..#.##..#...
+.B.#.........
+#####.#..####
+......####.#.
+.######E.#.#.
+........F#...
+""".strip()
+
+maze2 = """
+...#.....#...
+......#..#E.F
+...#..#..#...
+####.##.###.#
+...#..#......
+.#...>#..#...
+.######.#####
+...#.....#...
+.#.##.##.####
+.#.#..#..#..A
+##....#......
+C..#..#..#...
+.D.#..#..#.B.
+""".strip()
+
+maze3 = """
+E..#.....#A..
+......#..#...
+F..#..#..#..B
+####.##.##.##
+...#.#.......
+.#...##..#...
+.############
+...#.........
+.#.##.##.##.#
+.#.#..#..#...
+##...#####.C.
+.>.#.##..#...
+...#....##.D.
+""".strip()
+
+maze3_onpath = """
+E..#.....#A..
+......#..#...
+F..#..#..#..B
+####.##.##.##
+...#.#.......
+.#...##..#...
+>############
+...#.........
+.#.##.##.##.#
+.#.#..#..#...
+##...#####.C.
+...#.##..#...
+...#....##.D.
+""".strip()
+
+
+maze3_onpath_shortcut = """
+E..#.....#A..
+......#..#...
+F..#..#..#..B
+####.##.##.##
+...#.#.......
+.#...##..#...
+>###.#######.
+...#.........
+.#.##.#.###.#
+.#.#..#..#...
+##...###.#.C.
+...#.##..#...
+...#....##.D.
+""".strip()
+
+
+maze3_offpath_shortcut = """
+E..#.....#A..
+......#..#...
+F..#..#..#..B
+####.##.##.##
+...#.#.......
+.#...##..#...
+.###.#######.
+...#.........
+.#.##.#.###.#
+.#.#..#..#...
+##...###.#.C.
+...#.##..#...
+...#..>.##.D.
+""".strip()
+
+maze3_open = """
+E..#.....#A..
+......#..#...
+F..#..#..#..B
+####.##.##.##
+...#.#.......
+.#...##..#...
+.######.#####
+...#.........
+.#.##.##.##.#
+.#.#..#..#...
+##...#####.C.
+.>.#.##..#...
+...#....##.D.
+""".strip()
+
+maze3_open2 = """
+E..#.....#A..
+......#..#...
+F..#..#..#..B
+####.##.##.##
+...#.#.......
+.#...##..#...
+.###########.
+...#.....#...
+.#.##.##.##.#
+.#.#..#......
+##...#####.C.
+.>.#.##..#...
+...#....##.D.
+""".strip()
+
+maze4 = """
+C..#....#..A.
+.D.#.#####..B
+.###...#.....
+...###.#.....
+.#.#...#..###
+.#.#.###.....
+##.#...#.##.#
+...#.###.#...
+...#..#......
+.####.#.###.#
+.....>#.##...
+.##.###..#E.F
+.........#...
+""".strip()
+
+maze5 = """
+C.#......B...
+.D#.######...
+.##....#.....
+..####.#...A.
+...#.#.#.####
+.#.#.#.#.....
+##...#.####.#
+...#...#.##..
+...#..##..##.
+##.##.#....#.
+...#..#.##...
+.######..#E.F
+.>.......#...
+""".strip()
+
+
+def get_group_set(num_groups):
+    list_of_groups = load_groups()
+    full_group_set = list_of_groups[0]
+
+    chars = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
+    char2key = dict()
+    for idx, char in enumerate(chars):
+        i, j = idx // 2, idx % 2
+        if i > len(full_group_set):
+            break
+        char2key[char] = full_group_set[i, j]
+
+    assert num_groups <= 3
+    task_group_set = full_group_set[:num_groups]
+    task_objects = task_group_set.reshape(-1)
+
+    return char2key, task_group_set, task_objects
+
+def make_int_array(x): return jnp.asarray(x, dtype=jnp.int32)
+
+def get_pretraining_reset_params(
+    group_set,
+    make_env_params: bool = False,
+    max_starting_locs: int = 16,
+    ):
+    pretrain_level = default_levels.two_objects
+    list_of_reset_params = []
+    # -------------
+    # pretraining levels
+    # -------------
+    for group in group_set:
+      list_of_reset_params.append(
+          make_reset_params(
+              map_init=maze.MapInit(*from_str(
+                  pretrain_level, char_to_key=dict(A=group[0], B=group[1]))),
+              train_objects=group[:1],
+              test_objects=group[1:],
+              max_objects=len(group_set),
+              label=jnp.array(1),
+              starting_locs=make_int_array(
+                  np.ones((len(group_set), max_starting_locs, 2))*-1)
+          )
+      )
+    if make_env_params:
+        return maze.EnvParams(
+            reset_params=jtu.tree_map(
+                lambda *v: jnp.stack(v), *list_of_reset_params),
+        )
+    return list_of_reset_params
+
+def get_maze_reset_params(
+        group_set,
+        maze_str,
+        char2key,
+        num_starting_locs: int = 8,
+        max_starting_locs: int = 16,
+        make_env_params: bool = False,
+        curriculum: bool = False,
+        label: jnp.ndarray = jnp.array(0),
+        **kwargs,
+    ):
+    train_objects = group_set[:, 0]
+    test_objects = group_set[:, 1]
+    map_init = maze.MapInit(*from_str(
+        maze_str,
+        char_to_key=char2key))
+
+    all_starting_locs = np.ones(
+        (len(group_set), max_starting_locs, 2))*-1
+
+    if curriculum:
+        for idx, goal in enumerate(train_objects):
+            path = find_optimal_path(
+                map_init.grid, map_init.agent_pos, np.array([goal]))
+            width = len(path)//num_starting_locs
+            starting_locs = np.array([path[i] for i in range(0, len(path), width)])
+            all_starting_locs[idx, :len(starting_locs)] = starting_locs
+
+    reset_params = make_reset_params(
+        map_init=map_init,
+        train_objects=train_objects,
+        test_objects=test_objects,
+        max_objects=len(group_set),
+        starting_locs=make_int_array(all_starting_locs),
+        curriculum=jnp.array(curriculum),
+        label=label,
+        **kwargs,
+    )
+    if make_env_params:
+        return maze.EnvParams(
+            reset_params=jtu.tree_map(
+                lambda *v: jnp.stack(v), *[reset_params]),
+        )
+    return [reset_params]

@@ -3,7 +3,10 @@ import numpy as np
 import jax
 import jax.numpy as jnp
 
+import matplotlib.pyplot as plt
+
 from functools import partial
+from housemaze.maze import KeyboardActions
 
 def point_in_rect(xmin, xmax, ymin, ymax):
     def fn(x, y):
@@ -47,12 +50,10 @@ def point_in_triangle(a, b, c):
 
     return fn
 
-
 def add_border(tile):
     new_tile = fill_coords(tile, point_in_rect(
         0, 0.031, 0, 1), (100, 100, 100))
     return fill_coords(new_tile, point_in_rect(0, 1, 0, 0.031), (100, 100, 100))
-
 
 def create_image_grid_from_image_tensor(images, max_cols: int = 10):
     num_images = images.shape[0]
@@ -80,7 +81,6 @@ def create_image_grid_from_image_tensor(images, max_cols: int = 10):
 
     return canvas
 
-
 def make_agent_tile(direction: int, tile_size: int):
     TRI_COORDS = np.array([
         [0.12, 0.19],
@@ -92,14 +92,15 @@ def make_agent_tile(direction: int, tile_size: int):
     agent_tile = fill_coords(
         agent_tile, point_in_triangle(*TRI_COORDS), [255, 0, 0])
     add_border = lambda x:x
-    if direction == 0:
-        return add_border(agent_tile)  # right
-    elif direction == 1:
-        return add_border(np.rot90(agent_tile, k=3))  # down
-    elif direction == 2:
-        return add_border(np.rot90(agent_tile, k=2))  # left
-    elif direction == 3:
-        return add_border(np.rot90(agent_tile, k=1))  # up
+    return jax.lax.switch(
+        direction,
+        (
+        lambda: add_border(agent_tile),  # right
+        lambda: add_border(np.rot90(agent_tile, k=3)),  #down
+        lambda: add_border(np.rot90(agent_tile, k=2)),  # left
+        lambda: add_border(np.rot90(agent_tile, k=1))  # up
+        )
+    )
 
 def create_image_from_grid(
         grid: jnp.array,
@@ -155,3 +156,61 @@ def create_image_from_grid(
     final_image = transposed_images.reshape(new_H * img_H, new_W * img_W, C)
 
     return final_image
+
+
+def place_arrows_on_image(
+        image,
+        positions,
+        actions,
+        maze_height,
+        maze_width,
+        arrow_scale = 5,
+        ax=None):
+    # Get the dimensions of the image and the maze
+    image_height, image_width, _ = image.shape
+
+    # Calculate the scaling factors for mapping maze coordinates to image coordinates
+    scale_y = image_height // (maze_height+2)
+    scale_x = image_width // (maze_width+2)
+
+
+    # Calculate the offset to account for the border of walls
+    offset_y = (image_height - scale_y * maze_height) // 2
+    offset_x = (image_width - scale_x * maze_width) // 2
+
+    # Create a figure and axis
+    if ax is None:
+        fig, ax = plt.subplots(1, figsize=(5, 5))
+
+    # Display the rendered image
+    ax.imshow(image)
+
+    # Iterate over each position and action
+    for (y, x), action in zip(positions, actions):
+        # Calculate the center coordinates of the cell in the image
+        center_y = offset_y + (y + 0.5) * scale_y
+        center_x = offset_x + (x + 0.5) * scale_x
+
+        # Define the arrow directions based on the action
+        if action == KeyboardActions.up:
+            dx, dy = 0, -scale_y / 2
+        elif action == KeyboardActions.down:
+            dx, dy = 0, scale_y / 2
+        elif action == KeyboardActions.left:
+            dx, dy = -scale_x / 2, 0
+        elif action == KeyboardActions.right:
+            dx, dy = scale_x / 2, 0
+        else:  # KeyboardActions.done
+            continue  # Skip drawing an arrow for the 'done' action
+
+        # Draw the arrow on the image
+        ax.arrow(center_x, center_y, dx, dy, 
+         head_width=scale_x / arrow_scale,
+         head_length=scale_y / arrow_scale, 
+         width=scale_x / (arrow_scale * 2),
+         fc='g', ec='g')
+
+    # Remove the axis ticks and labels
+    ax.set_xticks([])
+    ax.set_yticks([])
+    return ax

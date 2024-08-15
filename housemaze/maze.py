@@ -61,7 +61,8 @@ class EnvParams:
     time_limit: int = 100
 
 
-class TaskState(struct.PyTreeNode):
+@struct.dataclass
+class TaskState:
    features: jax.Array
    grid: jax.Array
 
@@ -255,7 +256,7 @@ class HouseMaze:
         num_object_categories = self.num_categories
         num_directions = len(DIR_TO_VEC)
         num_spatial_positions = H * W
-        num_actions = self.num_actions(params)
+        num_actions = self.num_actions(params) + 1  # including reset action
         return num_object_categories + num_directions + num_spatial_positions + num_actions
 
     def action_enum(self):
@@ -295,9 +296,6 @@ class HouseMaze:
         num_directions = len(DIR_TO_VEC)
         H, W = grid.shape[-3:-1]
         num_spatial_positions = H*W
-
-        #num_actions = self.num_actions()
-        #total_categories = self.total_categories
 
         # Convert direction to the right category integer. after [objects]
         start = num_object_categories
@@ -391,7 +389,7 @@ class HouseMaze:
             task_state=task_state,
         )
 
-        reset_action = self.num_actions() + 1
+        reset_action = jnp.array(self.num_actions() + 1, dtype=jnp.int32)
         timestep = TimeStep(
             state=state,
             step_type=StepType.FIRST,
