@@ -12,6 +12,9 @@ setup(
         "numpy>=1.26.4",
         "matplotlib"
     ],
+    package_data={
+      '': ['*.npy', '*.yaml', '*.pkl'],
+    },
     author="Wilka Carvalho",
     author_email="wcarvalho92@gmail.com",
     description="A library to easily create maze environment with strings and an image dictionary.",
