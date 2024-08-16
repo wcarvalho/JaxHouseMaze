@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="jaxhousemaze",
-    version="0.0.1",
+    version="0.0.2",
     packages=find_packages(),
     install_requires=[
         "jax>=0.4.16",
