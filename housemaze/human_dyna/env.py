@@ -29,6 +29,8 @@ class EnvParams:
     reset_params: ResetParams
     time_limit: int = 100
     p_test_sample_train: float = .5
+    force_room: bool = jnp.array(False)
+    default_room: bool = jnp.array(0)
     training: bool = True
     terminate_with_done: int = 0  # more relevant for web app
     randomize_agent: bool = False
@@ -173,11 +175,17 @@ class HouseMaze(maze.HouseMaze):
         ##################
         # sample task objects
         ##################
-        train_object = jax.lax.dynamic_index_in_dim(
-            reset_params.train_objects, pair_idx, keepdims=False,
-        )
-        test_object = jax.lax.dynamic_index_in_dim(
-            reset_params.test_objects, pair_idx, keepdims=False,
+        def index(v, i):
+            return jax.lax.dynamic_index_in_dim(v, i, keepdims=False)
+
+        train_object = index(reset_params.train_objects, pair_idx)
+        test_object = index(reset_params.test_objects, pair_idx)
+
+        train_object, test_object = jax.lax.cond(
+            params.force_room,
+            lambda: (index(reset_params.train_objects, params.default_room),
+                     index(reset_params.test_objects, params.default_room)),
+            lambda: (train_object, test_object)
         )
 
         def train_sample(rng):

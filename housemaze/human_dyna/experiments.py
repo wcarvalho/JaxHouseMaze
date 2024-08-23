@@ -18,7 +18,7 @@ def maze1_all(config):
         group_set=group_set,
     )
     main_params = mazes.get_maze_reset_params(
-        group_set=group_set,
+        groups=group_set,
         char2key=char2key,
         maze_str=mazes.maze1,
         curriculum=True,
@@ -46,14 +46,14 @@ def maze3_open(config):
         group_set=group_set,
     )
     main_params = mazes.get_maze_reset_params(
-        group_set=group_set,
+        groups=group_set,
         char2key=char2key,
         maze_str=mazes.maze3,
         label=jnp.array(0),
         curriculum=True,
     )
     main_open_params = mazes.get_maze_reset_params(
-        group_set=group_set,
+        groups=group_set,
         char2key=char2key,
         maze_str=mazes.maze3_open,
         label=jnp.array(2),
@@ -84,13 +84,13 @@ def maze3_randomize(config):
         group_set=group_set,
     )
     main_params = mazes.get_maze_reset_params(
-        group_set=group_set,
+        groups=group_set,
         char2key=char2key,
         maze_str=mazes.maze3,
         randomize_agent=True,
     )
     main_open_params = mazes.get_maze_reset_params(
-        group_set=group_set,
+        groups=group_set,
         char2key=char2key,
         maze_str=mazes.maze3_open,
         randomize_agent=True,
@@ -124,7 +124,7 @@ def maze5_two_paths(config):
         group_set=group_set,
     )
     main_params = mazes.get_maze_reset_params(
-        group_set=group_set,
+        groups=group_set,
         char2key=char2key,
         maze_str=mazes.maze5,
     )

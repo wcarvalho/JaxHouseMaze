@@ -96,9 +96,9 @@ F..#..#..#..B
 ...#.........
 .#.##.##.##.#
 .#.#..#..#...
-##...#####.C.
-...#.##..#...
-...#....##.D.
+##...#####...
+...#.##..#C.D
+...#....##...
 """.strip()
 
 
@@ -113,9 +113,9 @@ F..#..#..#..B
 ...#.........
 .#.##.#.###.#
 .#.#..#..#...
-##...###.#.C.
-...#.##..#...
-...#....##.D.
+##...###.#...
+...#.##..#C.D
+...#....##...
 """.strip()
 
 
@@ -130,9 +130,9 @@ F..#..#..#..B
 ...#.........
 .#.##.#.###.#
 .#.#..#..#...
-##...###.#.C.
-...#.##..#...
-...#..>.##.D.
+##...###.#...
+...#.##..#C.D
+...#..>.##...
 """.strip()
 
 maze3_open = """
@@ -235,11 +235,7 @@ F..#..#..#.#.
 maze6_flipped_offtask = reverse(maze6_flipped_offtask)
 
 
-def get_group_set(num_groups, group_set = None):
-    if group_set is None:
-        list_of_groups = load_groups()
-        group_set = list_of_groups[0]
-
+def groups_to_char2key(group_set):
     chars = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
     char2key = dict()
     for idx, char in enumerate(chars):
@@ -247,6 +243,14 @@ def get_group_set(num_groups, group_set = None):
         if i >= len(group_set):
             break
         char2key[char] = group_set[i, j]
+    return char2key
+
+def get_group_set(num_groups, group_set = None):
+    if group_set is None:
+        list_of_groups = load_groups()
+        group_set = list_of_groups[0]
+
+    char2key = groups_to_char2key(group_set)
 
     assert num_groups <= 3
     task_group_set = group_set[:num_groups]
@@ -287,7 +291,7 @@ def get_pretraining_reset_params(
     return list_of_reset_params
 
 def get_maze_reset_params(
-        group_set,
+        groups,
         maze_str,
         char2key,
         num_starting_locs: int = 8,
@@ -297,14 +301,14 @@ def get_maze_reset_params(
         label: jnp.ndarray = jnp.array(0),
         **kwargs,
     ):
-    train_objects = group_set[:, 0]
-    test_objects = group_set[:, 1]
+    train_objects = groups[:, 0]
+    test_objects = groups[:, 1]
     map_init = maze.MapInit(*from_str(
         maze_str,
         char_to_key=char2key))
 
     all_starting_locs = np.ones(
-        (len(group_set), max_starting_locs, 2))*-1
+        (len(groups), max_starting_locs, 2))*-1
 
     if curriculum:
         for idx, goal in enumerate(train_objects):
@@ -318,7 +322,7 @@ def get_maze_reset_params(
         map_init=map_init,
         train_objects=train_objects,
         test_objects=test_objects,
-        max_objects=len(group_set),
+        max_objects=len(groups),
         starting_locs=make_int_array(all_starting_locs),
         curriculum=jnp.array(curriculum),
         label=label,
