@@ -6,6 +6,21 @@ from housemaze.human_dyna.utils import make_reset_params, load_groups
 from housemaze.utils import from_str, find_optimal_path
 from housemaze import levels as default_levels
 
+
+def reverse(maze, horizontal=True, vertical=True):
+    # Reverse each line
+    if horizontal:
+        reversed_lines = [line[::-1] for line in maze.splitlines()]
+    else:
+        reversed_lines = [line for line in maze.splitlines()]
+
+    # Reverse the order of the lines
+    if vertical:
+        return "\n".join(reversed(reversed_lines))
+    else:
+        return "\n".join(reversed_lines)
+
+
 maze0 = """
 .....#...A#..
 .###.####.##.
@@ -40,8 +55,8 @@ A..#.##..#...
 
 maze2 = """
 ...#.....#...
-......#..#E.F
-...#..#..#...
+......#..#...
+...#..#..#E.F
 ####.##.###.#
 ...#..#......
 .#...>#..#...
@@ -65,9 +80,9 @@ F..#..#..#..B
 ...#.........
 .#.##.##.##.#
 .#.#..#..#...
-##...#####.C.
-.>.#.##..#...
-...#....##.D.
+##...#####...
+.>.#.##..#C.D
+...#....##...
 """.strip()
 
 maze3_onpath = """
@@ -131,9 +146,9 @@ F..#..#..#..B
 ...#.........
 .#.##.##.##.#
 .#.#..#..#...
-##...#####.C.
-.>.#.##..#...
-...#....##.D.
+##...#####...
+.>.#.##..#C.D
+...#....##...
 """.strip()
 
 maze3_open2 = """
@@ -147,9 +162,9 @@ F..#..#..#..B
 ...#.....#...
 .#.##.##.##.#
 .#.#..#......
-##...#####.C.
-.>.#.##..#...
-...#....##.D.
+##...#####...
+.>.#.##..#C.D
+...#....##...
 """.strip()
 
 maze4 = """
@@ -164,8 +179,8 @@ C..#....#..A.
 ...#..#......
 .####.#.###.#
 .....>#.##...
-.##.###..#E.F
-.........#...
+.##.###..#...
+.........#E.F
 """.strip()
 
 maze5 = """
@@ -180,25 +195,61 @@ C.#......B...
 ...#..##..##.
 ##.##.#....#.
 ...#..#.##...
-.######..#E.F
-.>.......#...
+.######..#...
+.>.......#E.F
 """.strip()
 
 
-def get_group_set(num_groups):
-    list_of_groups = load_groups()
-    full_group_set = list_of_groups[0]
+maze6 = """
+E..#.....#A.B
+......##.#...
+F..#..#..#.#.
+####.##.##.##
+...#.#.....#.
+.#...##......
+.###########.
+...#......#..
+.#.##.##.##.#
+.#.#..#...###
+##...####....
+.>.#.##.##...
+...#.....#C.D
+""".strip()
+maze6 = reverse(maze6)
+
+maze6_flipped_offtask = """
+E..#.....#A..
+......##.#...
+F..#..#..#.#.
+####.##.##.##
+...#.#.....#.
+.#...##......
+.###########.
+...#......#B.
+.#.##.##.##.#
+.#.#..#...###
+##...####....
+.>.#.##.##...
+...#.....#C.D
+""".strip()
+maze6_flipped_offtask = reverse(maze6_flipped_offtask)
+
+
+def get_group_set(num_groups, group_set = None):
+    if group_set is None:
+        list_of_groups = load_groups()
+        group_set = list_of_groups[0]
 
     chars = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
     char2key = dict()
     for idx, char in enumerate(chars):
         i, j = idx // 2, idx % 2
-        if i > len(full_group_set):
+        if i >= len(group_set):
             break
-        char2key[char] = full_group_set[i, j]
+        char2key[char] = group_set[i, j]
 
     assert num_groups <= 3
-    task_group_set = full_group_set[:num_groups]
+    task_group_set = group_set[:num_groups]
     task_objects = task_group_set.reshape(-1)
 
     return char2key, task_group_set, task_objects

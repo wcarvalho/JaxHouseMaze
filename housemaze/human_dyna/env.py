@@ -207,7 +207,6 @@ class HouseMaze(maze.HouseMaze):
         ##################
         # create task vectors
         ##################
-
         task_w = self.task_runner.task_vector(task_object)
         offtask_w = self.task_runner.task_vector(offtask_object)
         task_state = self.task_runner.reset(grid, agent_pos)
