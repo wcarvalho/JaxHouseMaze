@@ -34,7 +34,7 @@ class EnvParams:
     training: bool = True
     terminate_with_done: int = 0  # more relevant for web app
     randomize_agent: bool = False
-
+    randomization_radius: int = 0  # New parameter
 
 
 @struct.dataclass
@@ -88,6 +88,69 @@ def mask_sample(mask, rng):
     # Sampling from the distribution
     return sampler.sample(seed=rng_)
 
+def sample_pos_in_grid(rng, grid, default_pos, radius):
+    H, W, C = grid.shape
+
+    def sample_full_grid(rng):
+        empty_spaces = grid == 0
+        inner_coords = jax.random.choice(
+            key=rng,
+            shape=(1,),
+            a=jnp.arange(H * W),
+            replace=False,
+            # Flatten the empty_spaces mask and use it
+            # as probability distribution
+            p=empty_spaces.flatten()
+        )
+        
+        # Convert the flattened index to y, x coordinates
+        y, x = jnp.divmod(inner_coords[0], W)
+        return jnp.array([y, x])
+
+    def sample_within_radius(rng):
+        def create_probability_map():
+            y, x = jnp.mgrid[0:H, 0:W]
+            distance_sq = (y - default_pos[0])**2 + (x - default_pos[1])**2
+
+            # Create a mask for positions within the radius
+            within_radius = (distance_sq <= radius**2)
+
+            # Create a mask for empty spaces
+            empty_spaces = (grid[:, :, 0] == 0)
+
+            # Combine the masks
+            valid_positions = within_radius & empty_spaces
+
+            # Create probability map
+            prob_map = valid_positions.astype(jnp.float32)
+            prob_map /= prob_map.sum()
+
+            return prob_map
+
+        prob_map = create_probability_map()
+
+        # Flatten the probability map for sampling
+        flat_prob_map = prob_map.reshape(-1)
+
+        # Sample a position
+        idx = jax.random.choice(
+            key=rng,
+            a=jnp.arange(flat_prob_map.shape[0]),
+            shape=(1,),
+            p=flat_prob_map
+        )
+
+        # Convert the flat index back to 2D coordinates
+        sampled_pos = jnp.unravel_index(idx[0], (H, W))
+
+        return jnp.array(sampled_pos)
+
+    return jax.lax.cond(
+        radius == 0,
+        sample_full_grid,
+        sample_within_radius,
+        rng
+    )
 
 class HouseMaze(maze.HouseMaze):
 
@@ -137,26 +200,6 @@ class HouseMaze(maze.HouseMaze):
                 locs, loc_idx, keepdims=False)
             return loc
 
-        def sample_random(rng_, grid):
-            H, W = grid.shape[:2]
-            empty_spaces = grid == 0
-
-            # Choose a single index from the flattened array
-            inner_coords = jax.random.choice(
-                key=rng_,
-                shape=(1,),
-                a=jnp.arange(H * W),
-                replace=False,
-                # Flatten the empty_spaces mask and use it as probability distribution
-                p=empty_spaces.flatten()
-            )
-
-            # Convert the flattened index to y, x coordinates
-            y, x = jnp.divmod(inner_coords[0], W)
-
-            return jnp.array([y, x])
-
-
         def sample_normal(rng_, reset_params, params):
             return jax.lax.cond(
                 jnp.logical_and(reset_params.curriculum, params.training),
@@ -164,11 +207,10 @@ class HouseMaze(maze.HouseMaze):
                 lambda: reset_params.map_init.agent_pos
             )
 
-
         rng, rng_ = jax.random.split(rng)
         agent_pos = jax.lax.cond(
             jnp.logical_and(params.randomize_agent, reset_params.randomize_agent),
-            lambda: sample_random(rng_, grid),
+            lambda: sample_pos_in_grid(rng_, grid, reset_params.map_init.agent_pos, params.randomization_radius),
             lambda: sample_normal(rng_, reset_params, params)
         )
 
