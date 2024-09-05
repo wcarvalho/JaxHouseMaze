@@ -15,7 +15,7 @@ def maze1_all(config):
     char2key, group_set, task_objects = mazes.get_group_set(num_groups)
 
     pretrain_params = mazes.get_pretraining_reset_params(
-        group_set=group_set,
+        groups=group_set,
     )
     main_params = mazes.get_maze_reset_params(
         groups=group_set,
@@ -43,7 +43,7 @@ def maze3_open(config):
     char2key, group_set, task_objects = mazes.get_group_set(num_groups)
 
     pretrain_params = mazes.get_pretraining_reset_params(
-        group_set=group_set,
+        groups=group_set,
     )
     main_params = mazes.get_maze_reset_params(
         groups=group_set,
@@ -81,7 +81,7 @@ def maze3_randomize(config):
     char2key, group_set, task_objects = mazes.get_group_set(num_groups)
 
     pretrain_params = mazes.get_pretraining_reset_params(
-        group_set=group_set,
+        groups=group_set,
     )
     main_params = mazes.get_maze_reset_params(
         groups=group_set,
@@ -121,7 +121,7 @@ def maze5_two_paths(config):
     char2key, group_set, task_objects = mazes.get_group_set(num_groups)
 
     pretrain_params = mazes.get_pretraining_reset_params(
-        group_set=group_set,
+        groups=group_set,
     )
     main_params = mazes.get_maze_reset_params(
         groups=group_set,

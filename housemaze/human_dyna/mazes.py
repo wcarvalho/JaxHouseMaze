@@ -1,3 +1,4 @@
+from enum import IntEnum
 import jax.numpy as jnp
 import jax.tree_util as jtu
 import numpy as np
@@ -6,6 +7,11 @@ from housemaze.human_dyna.utils import make_reset_params, load_groups
 from housemaze.utils import from_str, find_optimal_path
 from housemaze import levels as default_levels
 
+
+class Labels(IntEnum):
+    large = 0
+    small = 1
+    shortcut = 2
 
 def reverse(maze, horizontal=True, vertical=True):
     # Reverse each line
@@ -199,7 +205,6 @@ C.#......B...
 .>.......#E.F
 """.strip()
 
-
 maze6 = """
 E..#.....#A.B
 ......##.#...
@@ -261,7 +266,7 @@ def get_group_set(num_groups, group_set = None):
 def make_int_array(x): return jnp.asarray(x, dtype=jnp.int32)
 
 def get_pretraining_reset_params(
-    group_set,
+    groups,
     make_env_params: bool = False,
     max_starting_locs: int = 16,
     ):
@@ -270,17 +275,17 @@ def get_pretraining_reset_params(
     # -------------
     # pretraining levels
     # -------------
-    for group in group_set:
+    for group in groups:
       list_of_reset_params.append(
           make_reset_params(
               map_init=maze.MapInit(*from_str(
                   pretrain_level, char_to_key=dict(A=group[0], B=group[1]))),
               train_objects=group[:1],
               test_objects=group[1:],
-              max_objects=len(group_set),
+              max_objects=len(groups),
               label=jnp.array(1),
               starting_locs=make_int_array(
-                  np.ones((len(group_set), max_starting_locs, 2))*-1)
+                  np.ones((len(groups), max_starting_locs, 2))*-1)
           )
       )
     if make_env_params:
