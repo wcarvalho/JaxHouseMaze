@@ -38,7 +38,6 @@ class HouseMaze(multitask_env.HouseMaze):
         grid = reset_params.map_init.grid
         agent_dir = reset_params.map_init.agent_dir
 
-        jax.debug.print('params.task_probs={x}', x=params.task_probs)
         task_sampler = distrax.Categorical(probs=params.task_probs)
         rng, rng_ = jax.random.split(rng)
         task_idx = task_sampler.sample(seed=rng_)

@@ -67,6 +67,7 @@ class TimeStep(struct.PyTreeNode):
     reward: jax.Array
     discount: jax.Array
     observation: env.Observation
+    finished: jax.Array = jnp.array(False)
 
     def first(self):
         return self.step_type == StepType.FIRST
@@ -76,9 +77,6 @@ class TimeStep(struct.PyTreeNode):
 
     def last(self):
         return self.step_type == StepType.LAST
-
-    def finished(self):
-        return self.step_type == StepType.FINISHED
 
 def mask_sample(mask, rng):
     # Creating logits based on the mask: -1e8 where mask is 0, 1 where mask is 1
