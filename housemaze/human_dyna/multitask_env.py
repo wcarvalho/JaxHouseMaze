@@ -4,18 +4,18 @@ import jax.numpy as jnp
 from flax import struct
 import distrax
 
-from housemaze import maze
+from housemaze import env
 
-TaskRunner = maze.TaskRunner
-TimeStep = maze.TimeStep
-StepType = maze.StepType
+TaskRunner = env.TaskRunner
+TimeStep = env.TimeStep
+StepType = env.StepType
 
-MapInit = maze.MapInit
+MapInit = env.MapInit
 
 
 @struct.dataclass
 class ResetParams:
-    map_init: maze.MapInit
+    map_init: env.MapInit
     train_objects: jax.Array
     test_objects: jax.Array
     starting_locs: Optional[jax.Array] = None
@@ -35,6 +35,7 @@ class EnvParams:
     terminate_with_done: int = 0  # more relevant for web app
     randomize_agent: bool = False
     randomization_radius: int = 0  # New parameter
+    task_probs: jax.Array = None
 
 
 @struct.dataclass
@@ -55,7 +56,8 @@ class EnvState:
     task_object: jax.Array
     current_label: jax.Array
     offtask_w: jax.Array
-    task_state: Optional[maze.TaskState] = None
+    task_state: Optional[env.TaskState] = None
+    successes: Optional[jax.Array] = None
 
 
 class TimeStep(struct.PyTreeNode):
@@ -64,7 +66,7 @@ class TimeStep(struct.PyTreeNode):
     step_type: StepType
     reward: jax.Array
     discount: jax.Array
-    observation: maze.Observation
+    observation: env.Observation
 
     def first(self):
         return self.step_type == StepType.FIRST
@@ -74,6 +76,9 @@ class TimeStep(struct.PyTreeNode):
 
     def last(self):
         return self.step_type == StepType.LAST
+
+    def finished(self):
+        return self.step_type == StepType.FINISHED
 
 def mask_sample(mask, rng):
     # Creating logits based on the mask: -1e8 where mask is 0, 1 where mask is 1
@@ -152,13 +157,13 @@ def sample_pos_in_grid(rng, grid, default_pos, radius):
         rng
     )
 
-class HouseMaze(maze.HouseMaze):
+class HouseMaze(env.HouseMaze):
 
     def total_categories(self, params: EnvParams):
         grid = params.reset_params.map_init.grid
         H, W = grid.shape[-3:-1]
         num_object_categories = self.num_categories
-        num_directions = len(maze.DIR_TO_VEC)
+        num_directions = len(env.DIR_TO_VEC)
         num_spatial_positions = H * W
         num_actions = self.num_actions(params) + 1  # including reset action
         return num_object_categories + num_directions + num_spatial_positions + num_actions
@@ -215,7 +220,7 @@ class HouseMaze(maze.HouseMaze):
         )
 
         ##################
-        # sample task objects
+        # sample either train or test object as task object
         ##################
         def index(v, i):
             return jax.lax.dynamic_index_in_dim(v, i, keepdims=False)
@@ -295,11 +300,11 @@ class HouseMaze(maze.HouseMaze):
         del rng # deterministic function
 
         if self.action_spec == 'keyboard':
-            grid, agent_pos, agent_dir = maze.take_action(
+            grid, agent_pos, agent_dir = env.take_action(
                 timestep.state.replace(agent_dir=action),
-                action=maze.MinigridActions.forward)
+                action=env.MinigridActions.forward)
         elif self.action_spec == 'minigrid':
-            grid, agent_pos, agent_dir = maze.take_action(
+            grid, agent_pos, agent_dir = env.take_action(
                 timestep.state,
                 action)
         else:

@@ -6,7 +6,7 @@ import jax.numpy as jnp
 import matplotlib.pyplot as plt
 
 from functools import partial
-from housemaze.maze import KeyboardActions
+from housemaze.env import KeyboardActions
 
 def point_in_rect(xmin, xmax, ymin, ymax):
     def fn(x, y):

@@ -6,7 +6,7 @@ import numpy as np
 
 from housemaze import levels
 from housemaze.utils import *
-from housemaze.human_dyna import env as maze
+from housemaze.human_dyna import multitask_env as maze
 
 def make_int_array(x): return jnp.asarray(x, dtype=jnp.int32)
 

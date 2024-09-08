@@ -71,6 +71,7 @@ class StepType(jnp.uint8):
     FIRST: jax.Array = jnp.asarray(0, dtype=jnp.uint8)
     MID: jax.Array = jnp.asarray(1, dtype=jnp.uint8)
     LAST: jax.Array = jnp.asarray(2, dtype=jnp.uint8)
+    FINISHED: jax.Array = jnp.asarray(3, dtype=jnp.uint8)
 
 
 def object_positions(grid, objects):

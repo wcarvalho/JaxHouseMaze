@@ -6,7 +6,7 @@ import os.path
 import jax.numpy as jnp
 import numpy as np
 import pickle
-from housemaze.maze import KeyboardActions
+from housemaze.env import KeyboardActions
 
 def replace_color(image, old_color, new_color):
     # Convert the image and colors to JAX arrays if they aren't already

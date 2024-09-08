@@ -4,7 +4,7 @@ import jax.tree_util as jtu
 import numpy as np
 import os.path
 
-from housemaze.human_dyna import env as maze
+from housemaze.human_dyna import multitask_env as maze
 from housemaze.human_dyna import mazes
 
 
