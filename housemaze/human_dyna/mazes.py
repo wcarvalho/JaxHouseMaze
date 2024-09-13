@@ -173,6 +173,10 @@ F..#..#..#..B
 ...#....##...
 """.strip()
 
+maze3_r = reverse(maze3)
+maze3_onpath_shortcut_r = reverse(maze3_onpath_shortcut)
+maze3_offpath_shortcut_r = reverse(maze3_offpath_shortcut)
+
 maze4 = """
 C..#....#..A.
 .D.#.#####..B
