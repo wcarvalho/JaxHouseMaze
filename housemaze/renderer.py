@@ -106,7 +106,9 @@ def create_image_from_grid(
         grid: jnp.array,
         agent_pos: Tuple[int],
         agent_dir: int,
-        image_dict: dict, include_objects: bool = True):
+        image_dict: dict,
+        include_objects: bool = True,
+        ):
     # Assumes wall_index is the index for the wall image in image_dict['images']
     wall_index = image_dict['keys'].index('wall')
 
@@ -126,14 +128,22 @@ def create_image_from_grid(
     # Retrieve the images tensor
     images = image_dict['images']
 
+    # Create a light blue tile
+    tile_size = images.shape[-2]
+
     # Use advanced indexing to map the grid indices to actual images
     if not include_objects:
-        new_grid_flat = jnp.where(new_grid_flat > 1, 0, new_grid_flat)
-
-    new_grid_flat = jax.vmap(lambda x: images[x])(new_grid_flat)
+        light_blue_tile = jnp.full((tile_size, tile_size, 3), jnp.asarray([173, 216, 230], dtype=jnp.uint8) , dtype=jnp.uint8)
+        object_mask = new_grid_flat > 1
+        new_grid_flat = jnp.where(object_mask, 0, new_grid_flat)
+        new_grid_flat = jax.vmap(lambda x: images[x])(new_grid_flat)
+        new_grid_flat = jnp.where(object_mask[:, :, jnp.newaxis, jnp.newaxis, jnp.newaxis], 
+                                  light_blue_tile, 
+                                  new_grid_flat)
+    else:
+        new_grid_flat = jax.vmap(lambda x: images[x])(new_grid_flat)
 
     # Create the agent tile with the specified direction
-    tile_size = images.shape[-2]
     agent_tile = make_agent_tile(agent_dir, tile_size)
 
     # Adjust agent position to account for the expanded grid
@@ -211,6 +221,7 @@ def place_arrows_on_image(
          fc='g', ec='g')
 
     # Remove the axis ticks and labels
+    
     ax.set_xticks([])
     ax.set_yticks([])
     return ax

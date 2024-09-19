@@ -67,8 +67,9 @@ def sample_n_groups(
     return jnp.array(list_of_groups)
 
 
-def find_optimal_path(grid, agent_pos, goal):
-    rng = jax.random.PRNGKey(42)
+def find_optimal_path(grid, agent_pos, goal, rng=None):
+    if rng is None:
+        rng = jax.random.PRNGKey(42)
     return bfs(grid, agent_pos, goal, rng)[0]
 
 
@@ -167,6 +168,18 @@ def actions_from_path(path):
     actions.append(KeyboardActions.done)
     return np.array(actions)
 
+
+def count_action_changes(actions):
+    if len(actions) < 2:
+        return np.zeros(len(actions), dtype=int)
+
+    changes = np.zeros(len(actions), dtype=int)
+    for i in range(1, len(actions)):
+        if actions[i] != actions[i-1]:
+            changes[i] = 1
+
+    return changes
+
 def load_image_dict(file: str = None, add_borders: bool = False):
 
     if file is None or file == '':
@@ -230,16 +243,16 @@ def from_str(
           elif char == '#': # WALL
               grid[y, x] = np.array(1)
           elif char == '>':
-              assert agent_pos is None, "Agent position can only be set once."
+            #  assert agent_pos is None, "Agent position can only be set once."
               agent_pos, agent_dir = (y, x), 0
           elif char == 'v':
-              assert agent_pos is None, "Agent position can only be set once."
+            #  assert agent_pos is None, "Agent position can only be set once."
               agent_pos, agent_dir = (y, x), 1
           elif char == '<':
-              assert agent_pos is None, "Agent position can only be set once."
+            #  assert agent_pos is None, "Agent position can only be set once."
               agent_pos, agent_dir = (y, x), 2
           elif char == '^':
-              assert agent_pos is None, "Agent position can only be set once."
+            #  assert agent_pos is None, "Agent position can only be set once."
               agent_pos, agent_dir = (y, x), 3
           elif char in char_to_key:
               key = char_to_key[char]
@@ -260,6 +273,141 @@ def from_str(
 
   return grid, agent_pos, agent_dir
 
+
+def reverse(maze, horizontal=True, vertical=True):
+    # Reverse each line
+    if horizontal:
+        reversed_lines = [line[::-1] for line in maze.splitlines()]
+    else:
+        reversed_lines = [line for line in maze.splitlines()]
+
+    # Reverse the order of the lines
+    if vertical:
+        return "\n".join(reversed(reversed_lines))
+    else:
+        return "\n".join(reversed_lines)
+
+
+def multiply_maze(maze, n=2, horizontal=True):
+    if horizontal:
+        return multiply_horizontally(maze, n)
+    else:
+        return multiply_vertically(maze, n)
+
+def multiply_horizontally(maze, n=2):
+    lines = maze.strip().split('\n')
+    multiplied_lines = [line * n for line in lines]
+    return '\n'.join(multiplied_lines)
+
+
+def multiply_vertically(maze, n=2):
+    lines = maze.strip().split('\n')
+    multiplied_lines = lines * n
+    return '\n'.join(multiplied_lines)
+
+def cut(maze, n=3, h=True):
+    if n == 0:
+        return maze
+    lines = maze.strip().split('\n')
+    if h:
+        cut_lines = [line[:-n] for line in lines]
+    else:
+        cut_lines = lines[:n]
+    return '\n'.join(cut_lines)
+
+def combine_horizontally(*mazes):
+    """
+    Combines multiple mazes horizontally.
+    
+    Args:
+    mazes (list): A list of mazes, where each maze is a string.
+    
+    Returns:
+    str: The combined maze as a string.
+    
+    Raises:
+    AssertionError: If the mazes don't have the same number of rows.
+    ValueError: If the input list is empty.
+    """
+    if not mazes:
+        raise ValueError("The list of mazes is empty")
+    
+    # Split all mazes into lines
+    maze_lines = [maze.strip().split('\n') for maze in mazes]
+    
+    # Assert that all mazes have the same number of rows
+    num_rows = len(maze_lines[0])
+    assert all(len(lines) == num_rows for lines in maze_lines), "All mazes must have the same number of rows"
+    
+    # Combine the lines horizontally
+    combined_lines = [''.join(lines) for lines in zip(*maze_lines)]
+    
+    # Join the lines back into a single string
+    return '\n'.join(combined_lines)
+
+
+def combine_vertically(*mazes):
+    """
+    Combines multiple mazes vertically.
+    
+    Args:
+    mazes (list): A list of mazes, where each maze is a string.
+    
+    Returns:
+    str: The combined maze as a string.
+    
+    Raises:
+    ValueError: If the input list is empty.
+    AssertionError: If the mazes don't have the same number of columns.
+    """
+    if not mazes:
+        raise ValueError("The list of mazes is empty")
+
+    # Split all mazes into lines
+    maze_lines = [maze.strip().split('\n') for maze in mazes]
+
+    # Assert that all mazes have the same number of columns
+    num_cols = len(maze_lines[0][0])
+    assert all(len(
+        line) == num_cols for maze in maze_lines for line in maze), "All mazes must have the same number of columns"
+
+    # Combine the mazes vertically
+    combined_lines = [line for maze in maze_lines for line in maze]
+
+    # Join the lines back into a single string
+    return '\n'.join(combined_lines)
+
+
+def insert(maze, column, char='#'):
+    lines = maze.strip().split('\n')
+    new_lines = []
+    for line in lines:
+        if column >= len(line):
+            new_line = line + char
+        else:
+            new_line = line[:column] + char + line[column:]
+        new_lines.append(new_line)
+    return '\n'.join(new_lines)
+
+
+def compare_mazes(maze1, maze2):
+    maze1_lines = maze1.strip().split('\n')
+    maze2_lines = maze2.strip().split('\n')
+
+    if len(maze1_lines) != len(maze2_lines):
+        return False, f"Mazes have different number of rows: {len(maze1_lines)} vs {len(maze2_lines)}"
+
+    differences = []
+
+    for i, (line1, line2) in enumerate(zip(maze1_lines, maze2_lines)):
+        if len(line1) != len(line2):
+            return False, f"Row {i} has different length: {len(line1)} vs {len(line2)}"
+
+        for j, (char1, char2) in enumerate(zip(line1, line2)):
+            if char1 in '.#' and char2 in '.#' and char1 != char2:
+                differences.append((i, j, char1, char2))
+
+    return differences
 
 class AutoResetWrapper:
 
@@ -284,4 +432,5 @@ class AutoResetWrapper:
             lambda: self.__auto_reset(key, params, prior_timestep),
             lambda: self._env.step(key, prior_timestep, action, params),
         )
+
 
