@@ -254,6 +254,7 @@ def from_str(
           elif char == '^':
             #  assert agent_pos is None, "Agent position can only be set once."
               agent_pos, agent_dir = (y, x), 3
+          elif char == '@': pass
           elif char in char_to_key:
               key = char_to_key[char]
               if isinstance(key, str):
@@ -273,6 +274,22 @@ def from_str(
 
   return grid, agent_pos, agent_dir
 
+
+def from_str_spawning(level_str: str):
+    level_str = level_str.strip()
+    rows = level_str.split('\n')
+    nrows = len(rows)
+    assert all(len(row) == len(rows[0])
+               for row in rows), "All rows must have same length"
+    ncols = len(rows[0])
+
+    grid = np.zeros((nrows, ncols, 1), dtype=np.uint8)
+
+    for y, row in enumerate(rows):
+        for x, char in enumerate(row):
+            if char in ['>', 'v', '<', '^', '@']:
+                grid[y, x] = np.array(1)
+    return grid
 
 def reverse(maze, horizontal=True, vertical=True):
     # Reverse each line

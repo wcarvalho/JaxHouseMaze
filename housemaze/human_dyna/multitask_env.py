@@ -91,24 +91,45 @@ def mask_sample(mask, rng):
     # Sampling from the distribution
     return sampler.sample(seed=rng_)
 
+
+def sample_spawn_locs(
+    rng, spawn_locs):
+    H, W, C = spawn_locs.shape
+
+    spawn_locs = spawn_locs/spawn_locs.sum()
+    inner_coords = jax.random.choice(
+        key=rng,
+        shape=(1,),
+        a=jnp.arange(H * W),
+        replace=False,
+        # Flatten the empty_spaces mask and use it
+        # as probability distribution
+        p=spawn_locs.flatten()
+    )
+
+    # Convert the flattened index to y, x coordinates
+    y, x = jnp.divmod(inner_coords[0], W)
+    return jnp.array([y, x])
+
 def sample_pos_in_grid(rng, grid, default_pos, radius):
+    # CAN PROBABLY REMOVE THIS! NOT USING IT!
     H, W, C = grid.shape
 
-    def sample_full_grid(rng):
-        empty_spaces = grid == 0
-        inner_coords = jax.random.choice(
-            key=rng,
-            shape=(1,),
-            a=jnp.arange(H * W),
-            replace=False,
-            # Flatten the empty_spaces mask and use it
-            # as probability distribution
-            p=empty_spaces.flatten()
-        )
+    #def sample_full_grid(rng):
+    #    empty_spaces = grid == 0
+    #    inner_coords = jax.random.choice(
+    #        key=rng,
+    #        shape=(1,),
+    #        a=jnp.arange(H * W),
+    #        replace=False,
+    #        # Flatten the empty_spaces mask and use it
+    #        # as probability distribution
+    #        p=empty_spaces.flatten()
+    #    )
         
-        # Convert the flattened index to y, x coordinates
-        y, x = jnp.divmod(inner_coords[0], W)
-        return jnp.array([y, x])
+    #    # Convert the flattened index to y, x coordinates
+    #    y, x = jnp.divmod(inner_coords[0], W)
+    #    return jnp.array([y, x])
 
     def sample_within_radius(rng):
         def create_probability_map():
@@ -148,9 +169,10 @@ def sample_pos_in_grid(rng, grid, default_pos, radius):
 
         return jnp.array(sampled_pos)
 
+    usable_spaces = grid == 0
     return jax.lax.cond(
         radius == 0,
-        sample_full_grid,
+        lambda rng: sample_spawn_locs(rng, usable_spaces),
         sample_within_radius,
         rng
     )
@@ -213,7 +235,8 @@ class HouseMaze(env.HouseMaze):
         rng, rng_ = jax.random.split(rng)
         agent_pos = jax.lax.cond(
             jnp.logical_and(params.randomize_agent, reset_params.randomize_agent),
-            lambda: sample_pos_in_grid(rng_, grid, reset_params.map_init.agent_pos, params.randomization_radius),
+            lambda: sample_spawn_locs(
+                rng_, reset_params.map_init.spawn_locs),
             lambda: sample_normal(rng_, reset_params, params)
         )
 
@@ -271,9 +294,9 @@ class HouseMaze(env.HouseMaze):
             key=rng,
             step_num=jnp.asarray(0),
             grid=grid,
-            is_train_task=is_train_task,
             agent_pos=agent_pos,
             agent_dir=agent_dir,
+            is_train_task=is_train_task,
             map_idx=reset_params_idx,
             current_label=reset_params.label,
             task_w=task_w,

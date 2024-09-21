@@ -52,6 +52,7 @@ class MapInit:
     grid: jax.Array
     agent_pos: jax.Array
     agent_dir: jax.Array
+    spawn_locs: Optional[jax.Array] = None
 
 
 @struct.dataclass

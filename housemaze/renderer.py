@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Optional
 import numpy as np
 import jax
 import jax.numpy as jnp
@@ -107,6 +107,7 @@ def create_image_from_grid(
         agent_pos: Tuple[int],
         agent_dir: int,
         image_dict: dict,
+        spawn_locs: Optional[jnp.array] = None,
         include_objects: bool = True,
         ):
     # Assumes wall_index is the index for the wall image in image_dict['images']
@@ -142,6 +143,25 @@ def create_image_from_grid(
                                   new_grid_flat)
     else:
         new_grid_flat = jax.vmap(lambda x: images[x])(new_grid_flat)
+
+    # Add pretty green color to spawn locations if spawn_locs is provided
+    if spawn_locs is not None:
+        # Expand spawn_locs to match the new grid size
+        expanded_spawn_locs = jnp.zeros((new_H, new_W, 1), dtype=spawn_locs.dtype)
+        expanded_spawn_locs = expanded_spawn_locs.at[1:H+1, 1:W+1, :].set(spawn_locs)
+        
+        # Create a pretty green color
+        pretty = jnp.array([228, 130, 83], dtype=jnp.uint8)  # Light green color
+        
+        # Create a mask for spawn locations
+        spawn_mask = expanded_spawn_locs[:, :, 0, jnp.newaxis, jnp.newaxis, jnp.newaxis]
+
+        # Blend the pretty green color with the existing tiles
+        alpha = 1.0  # Adjust this value to change the intensity of the green tint
+        blended_color = (1 - alpha) * new_grid_flat + alpha * pretty
+        
+        # Apply the blended color to spawn locations
+        new_grid_flat = jnp.where(spawn_mask, blended_color.astype(jnp.uint8), new_grid_flat)
 
     # Create the agent tile with the specified direction
     agent_tile = make_agent_tile(agent_dir, tile_size)
