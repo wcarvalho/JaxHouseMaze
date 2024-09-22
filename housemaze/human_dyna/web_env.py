@@ -11,7 +11,7 @@ from flax import struct
 
 from housemaze import env
 from housemaze.human_dyna import multitask_env
-from housemaze.human_dyna.multitask_env import sample_pos_in_grid
+from housemaze.human_dyna.multitask_env import sample_spawn_locs
 from housemaze.human_dyna.multitask_env import EnvParams, ResetParams
 
 from housemaze.human_dyna.multitask_env import TimeStep
@@ -53,8 +53,8 @@ class HouseMaze(multitask_env.HouseMaze):
         agent_pos = jax.lax.cond(
             jnp.logical_and(params.randomize_agent,
                             reset_params.randomize_agent),
-            lambda: sample_pos_in_grid(
-                rng_, grid, reset_params.map_init.agent_pos, params.randomization_radius),
+            lambda: sample_spawn_locs(
+                rng_, reset_params.map_init.spawn_locs),
             lambda: reset_params.map_init.agent_pos
         )
 
