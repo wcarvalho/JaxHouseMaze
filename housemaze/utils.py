@@ -220,7 +220,9 @@ def load_image_dict(file: str = None, add_borders: bool = False):
 def from_str(
         level_str: str,
         char_to_key: dict,
-        object_to_index: Optional[dict] = None):
+        object_to_index: Optional[dict] = None,
+        check_grid_letters: bool = True,
+        ):
 
   level_str = level_str.strip()
   rows = level_str.split('\n')
@@ -267,7 +269,10 @@ def from_str(
                 raise NotImplementedError(f"type: {type(key)}")
               grid[y, x] = object
           else:
-              raise RuntimeError(f"Unknown char: {char}")
+              if check_grid_letters:
+                    raise RuntimeError(f"Unknown char: {char}")
+              else:
+                    print(f"Skipping '{char}' at ({y}, {x})")
 
   assert agent_pos is not None
   assert agent_dir is not None

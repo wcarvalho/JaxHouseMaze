@@ -513,8 +513,9 @@ def get_pretraining_reset_params(
     groups,
     make_env_params: bool = False,
     max_starting_locs: int = 16,
+    pretrain_level: str = None,
     ):
-    pretrain_level = default_levels.two_objects
+    pretrain_level = pretrain_level or default_levels.two_objects
     list_of_reset_params = []
     # -------------
     # pretraining levels
@@ -522,7 +523,9 @@ def get_pretraining_reset_params(
     for group in groups:
       map_init = maze.MapInit(
         *from_str(
-              pretrain_level, char_to_key=dict(A=group[0], B=group[1])),
+              pretrain_level,
+              char_to_key=dict(A=group[0], B=group[1]),
+              check_grid_letters=False),
         spawn_locs=from_str_spawning(pretrain_level)
         )
       list_of_reset_params.append(
