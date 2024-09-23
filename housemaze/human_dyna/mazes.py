@@ -579,6 +579,7 @@ def get_maze_reset_params(
             max_path_locs = min(num_starting_locs, len(path))
             width = len(path)//max_path_locs
             starting_locs = np.array([path[i] for i in range(0, len(path), width)])
+            starting_locs = starting_locs[:max_path_locs]
             all_starting_locs[idx, :len(starting_locs)] = starting_locs
 
     reset_params = make_reset_params(
