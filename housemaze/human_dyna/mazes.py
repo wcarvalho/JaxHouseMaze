@@ -550,15 +550,20 @@ def get_maze_reset_params(
         groups,
         maze_str,
         char2key,
-        num_starting_locs: int = 8,
-        max_starting_locs: int = 16,
+        num_starting_locs: int = None,
+        max_starting_locs: int = 20,
         make_env_params: bool = False,
         curriculum: bool = False,
         label: jnp.ndarray = jnp.array(0),
+        swap_train_test: bool = False,
         **kwargs,
     ):
+    num_starting_locs = num_starting_locs or max_starting_locs
     train_objects = groups[:, 0]
     test_objects = groups[:, 1]
+    if swap_train_test:
+        train_objects = groups[:, 1]
+        test_objects = groups[:, 0]
     map_init = maze.MapInit(
         *from_str(maze_str, char_to_key=char2key),
         spawn_locs=from_str_spawning(maze_str),
@@ -571,7 +576,8 @@ def get_maze_reset_params(
         for idx, goal in enumerate(train_objects):
             path = find_optimal_path(
                 map_init.grid, map_init.agent_pos, np.array([goal]))
-            width = len(path)//num_starting_locs
+            max_path_locs = min(num_starting_locs, len(path))
+            width = len(path)//max_path_locs
             starting_locs = np.array([path[i] for i in range(0, len(path), width)])
             all_starting_locs[idx, :len(starting_locs)] = starting_locs
 
