@@ -101,7 +101,7 @@ def bfs(grid, agent_pos, goal, key, budget=1e8):
                 0 <= new_x < rows
                 and 0 <= new_y < cols
                 and (new_x, new_y) not in visited
-                and grid[new_x, new_y, 0] != 1
+                and (grid[new_x, new_y, 0] == 0 or grid[new_x, new_y, 0] == goal)
             ):
                 new_path = path + [(new_x, new_y)]
                 iterations += 1
@@ -136,7 +136,7 @@ def dfs(grid, agent_pos, goal, key, budget=1e8):
                 0 <= new_x < rows
                 and 0 <= new_y < cols
                 and (new_x, new_y) not in visited
-                and grid[new_x, new_y, 0] != 1
+                and (grid[new_x, new_y, 0] == 0 or grid[new_x, new_y, 0] == goal)
             ):
                 new_path = path + [(new_x, new_y)]
                 iterations += 1
