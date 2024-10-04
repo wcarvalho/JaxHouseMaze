@@ -52,7 +52,7 @@ class TaskRunner(struct.PyTreeNode):
   """
   task_objects: jax.Array
   convert_type: Callable[[jax.Array],
-                         jax.Array] = lambda x: x.astype(jnp.int32)
+                         jax.Array] = lambda x: x.astype(jnp.float32)
   radius: int = 5
 
   def task_vector(self, object):
@@ -84,10 +84,9 @@ class TaskRunner(struct.PyTreeNode):
         object_present = grid == obj
         nearby = (object_present[:,:,0] & window_mask).any()
         return nearby
-    
+
     is_nearby = jax.vmap(check_object)(self.task_objects)
-    
-    return is_nearby
+    return .05*self.convert_type(is_nearby)
 
   def reset(self, grid: jax.Array, agent_pos: jax.Array):
     """Get initial features.
@@ -105,8 +104,9 @@ class TaskRunner(struct.PyTreeNode):
     nearby_objects = self.compute_nearby_objects(grid, agent_pos)
     
     # Concatenate obtained_features and nearby_objects
-    features = jnp.concatenate([obtained_features, .1*nearby_objects])
+    features = jnp.concatenate([obtained_features, nearby_objects])
     features = self.convert_type(features)
+
     return TaskState(
         features=features,
         grid=grid,
@@ -127,7 +127,7 @@ class TaskRunner(struct.PyTreeNode):
     nearby_objects = self.compute_nearby_objects(grid, agent_pos)
 
     # Concatenate decrease and nearby_objects
-    features = jnp.concatenate([decrease, .05*nearby_objects])
+    features = jnp.concatenate([decrease, nearby_objects])
     
     return TaskState(
         grid=grid,
