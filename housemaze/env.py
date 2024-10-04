@@ -104,6 +104,9 @@ class TaskRunner(struct.PyTreeNode):
   def task_vector(self, object):
      return self.convert_type((object[None] == self.task_objects))
 
+  def check_terminated(self, features, task_w):
+    return (task_w*features).sum(-1) > 0
+
   def reset(self, grid: jax.Array, agent_pos: jax.Array):
     """Get initial features.
 
@@ -429,7 +432,7 @@ class HouseMaze:
         task_w = timestep.state.task_w.astype(jnp.float32)
         features = task_state.features.astype(jnp.float32)
         reward = (task_w*features).sum(-1)
-        terminated = reward > 0  # get task object
+        terminated = self.task_runner.check_terminated(features, task_w)
         truncated = jnp.equal(state.step_num, params.time_limit)
 
         step_type = jax.lax.select(

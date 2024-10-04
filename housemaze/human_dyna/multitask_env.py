@@ -279,7 +279,8 @@ class HouseMaze(env.HouseMaze):
 
         terminated_done = action == self.action_enum().done
         # any object picked up
-        terminated_features = (task_state.features > 0).any()
+        terminated_features = self.task_runner.check_terminated(
+            task_state.features, timestep.state.task_w)
         terminated = jax.lax.switch(
             params.terminate_with_done,
             (

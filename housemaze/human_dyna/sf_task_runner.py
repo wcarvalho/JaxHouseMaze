@@ -1,6 +1,5 @@
 from typing import Callable, Tuple
 
-
 from flax import struct
 import jax
 import jax.numpy as jnp
@@ -18,7 +17,7 @@ class TaskState:
    grid: jax.Array
 
 
-test_level = """
+test_level1 = """
 .......................A..
 ..........................
 ..........................
@@ -38,6 +37,8 @@ test_level = """
 ..........................
 ..........................
 """.strip()
+
+
 
 
 class TaskRunner(struct.PyTreeNode):
@@ -131,3 +132,4 @@ class TaskRunner(struct.PyTreeNode):
         grid=grid,
         features=self.convert_type(features)
     )
+
