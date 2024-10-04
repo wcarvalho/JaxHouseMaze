@@ -63,7 +63,8 @@ class TaskRunner(struct.PyTreeNode):
 
   def check_terminated(self, features, task_w):
     del task_w
-    return (features[:len(self.task_objects)//2]).sum(-1) > 0
+    half = features.shape[-1]//2
+    return (features[:half]).sum(-1) > 0
 
   def compute_nearby_objects(self, grid, agent_pos):
     # Create a window around the agent's position
