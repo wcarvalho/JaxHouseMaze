@@ -58,10 +58,11 @@ class TaskRunner(struct.PyTreeNode):
   def task_vector(self, object):
      """once for obtained. once for visible."""
      w = self.convert_type((object[None] == self.task_objects))
-     return jnp.concatenate([w, w])
+     # only get reward for getting object, not seeing it
+     return jnp.concatenate([w, w*0.])
 
   def check_terminated(self, features, task_w):
-
+    del task_w
     return (features[:len(self.task_objects)//2]).sum(-1) > 0
 
   def compute_nearby_objects(self, grid, agent_pos):
@@ -104,7 +105,7 @@ class TaskRunner(struct.PyTreeNode):
     nearby_objects = self.compute_nearby_objects(grid, agent_pos)
     
     # Concatenate obtained_features and nearby_objects
-    features = jnp.concatenate([obtained_features, nearby_objects])
+    features = jnp.concatenate([obtained_features, .1*nearby_objects])
     features = self.convert_type(features)
     return TaskState(
         features=features,
@@ -126,7 +127,7 @@ class TaskRunner(struct.PyTreeNode):
     nearby_objects = self.compute_nearby_objects(grid, agent_pos)
 
     # Concatenate decrease and nearby_objects
-    features = jnp.concatenate([decrease, nearby_objects])
+    features = jnp.concatenate([decrease, .05*nearby_objects])
     
     return TaskState(
         grid=grid,
