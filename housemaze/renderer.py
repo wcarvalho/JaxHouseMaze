@@ -129,13 +129,13 @@ def create_image_from_grid(
     # Retrieve the images tensor
     images = image_dict['images']
 
-    # Create a light blue tile
+    # Create a light blue tile and a yellow tile
     tile_size = images.shape[-2]
+    light_blue_tile = jnp.full((tile_size, tile_size, 3), jnp.asarray([173, 216, 230], dtype=jnp.uint8), dtype=jnp.uint8)
 
     # Use advanced indexing to map the grid indices to actual images
+    object_mask = new_grid_flat > 1
     if not include_objects:
-        light_blue_tile = jnp.full((tile_size, tile_size, 3), jnp.asarray([173, 216, 230], dtype=jnp.uint8) , dtype=jnp.uint8)
-        object_mask = new_grid_flat > 1
         new_grid_flat = jnp.where(object_mask, 0, new_grid_flat)
         new_grid_flat = jax.vmap(lambda x: images[x])(new_grid_flat)
         new_grid_flat = jnp.where(object_mask[:, :, jnp.newaxis, jnp.newaxis, jnp.newaxis], 
