@@ -105,7 +105,8 @@ class TaskRunner(struct.PyTreeNode):
      return self.convert_type((object[None] == self.task_objects))
 
   def check_terminated(self, features, task_w):
-    return (task_w*features).sum(-1) > 0
+    del task_w
+    return features.sum(-1) > 0
 
   def reset(self, grid: jax.Array, agent_pos: jax.Array):
     """Get initial features.
