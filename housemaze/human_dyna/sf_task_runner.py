@@ -54,12 +54,13 @@ class TaskRunner(struct.PyTreeNode):
   convert_type: Callable[[jax.Array],
                          jax.Array] = lambda x: x.astype(jnp.float32)
   radius: int = 5
+  vis_coeff: float = 0.0
 
   def task_vector(self, object):
      """once for obtained. once for visible."""
      w = self.convert_type((object[None] == self.task_objects))
      # only get reward for getting object, not seeing it
-     return jnp.concatenate([w, w*0.])
+     return jnp.concatenate([w, w*self.vis_coeff])
 
   def check_terminated(self, features, task_w):
     del task_w
