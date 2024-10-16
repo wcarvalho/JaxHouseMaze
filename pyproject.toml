@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jaxhousemaze"
+version = "0.0.2"
+authors = [
+    {name = "Wilka Carvalho", email = "wcarvalho92@gmail.com"},
+]
+description = "A library to easily create maze environment with strings and an image dictionary."
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "jax>=0.4.16",
+    "distrax>=0.1.5",
+    "flax>=0.8.2",
+    "numpy>=1.26.4",
+    "matplotlib",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/wcarvalho/JaxHouseMaze"
+"Bug Tracker" = "https://github.com/wcarvalho/JaxHouseMaze/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["*"]
+exclude = []
+
+[tool.setuptools.package-data]
+"*" = ["*.npy", "*.yaml", "*.pkl"]
