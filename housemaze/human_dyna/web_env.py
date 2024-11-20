@@ -38,7 +38,13 @@ class HouseMaze(multitask_env.HouseMaze):
         grid = reset_params.map_init.grid
         agent_dir = reset_params.map_init.agent_dir
 
-        task_sampler = distrax.Categorical(probs=params.task_probs)
+        if params.task_probs is None:
+            nobjects = len(self.task_runner.task_objects)
+            task_probs = jnp.ones(nobjects) / nobjects
+        else:
+            task_probs = params.task_probs  
+
+        task_sampler = distrax.Categorical(probs=task_probs)
         rng, rng_ = jax.random.split(rng)
         task_idx = task_sampler.sample(seed=rng_)
         train_object = index(self.task_runner.task_objects, task_idx)

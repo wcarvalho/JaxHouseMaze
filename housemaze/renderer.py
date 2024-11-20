@@ -1,4 +1,4 @@
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Union, List
 import numpy as np
 import jax
 import jax.numpy as jnp
@@ -104,7 +104,7 @@ def make_agent_tile(direction: int, tile_size: int):
 
 def create_image_from_grid(
         grid: jnp.array,
-        agent_pos: Tuple[int],
+        agent_pos: Tuple[int, int],
         agent_dir: int,
         image_dict: dict,
         spawn_locs: Optional[jnp.array] = None,
@@ -166,18 +166,18 @@ def create_image_from_grid(
     # Create the agent tile with the specified direction
     agent_tile = make_agent_tile(agent_dir, tile_size)
 
-    # Adjust agent position to account for the expanded grid
-    agent_y, agent_x = agent_pos
-    agent_x += 1
-    agent_y += 1
-
     # Dimensions of the new grid
     # Assuming all images are of the same shape and channel number
     img_H, img_W, C = images.shape[1:]
 
     # Reshape and transpose to form the single image
-    # First, reshape new_grid_flat to (new_H, new_W, img_H, img_W, C)
     reshaped_images = new_grid_flat.reshape(new_H, new_W, img_H, img_W, C)
+
+    # Add all agents to the image
+    agent_y, agent_x = agent_pos
+    # Adjust agent position to account for the expanded grid
+    agent_x += 1
+    agent_y += 1
     reshaped_images = reshaped_images.at[agent_y, agent_x].set(agent_tile)
 
     # Then, transpose to (new_H, img_H, new_W, img_W, C)
@@ -188,6 +188,49 @@ def create_image_from_grid(
     return final_image
 
 
+def agent_position_in_grid(
+        grid: jnp.array,
+        agent_pos: Union[Tuple[int, int], List[Tuple[int, int]]],
+        agent_dir: int,
+        image_dict: dict):
+    # Get dimensions
+    H, W = grid.shape[:2]
+    new_H, new_W = H + 2, W + 2
+
+    # Get floor image dimensions from image_dict
+    images = image_dict['images']
+    tile_size = images.shape[-2]
+    img_H, img_W, C = images.shape[1:]
+
+    # Create floor tile (using index 0 which is typically floor)
+    floor_tile = images[0]
+
+    # Create grid filled with floor tiles
+    new_grid_flat = jnp.tile(floor_tile, (new_H, new_W, 1, 1, 1))
+
+    # Create agent tile
+    agent_tile = make_agent_tile(agent_dir, tile_size)
+
+    # Handle both single agent and multiple agents
+    if isinstance(agent_pos, tuple) or isinstance(agent_pos[0], int):
+        agent_positions = [agent_pos]
+    else:
+        agent_positions = agent_pos
+
+    # Add agents to image
+    for pos in agent_positions:
+        agent_y, agent_x = pos
+        # Adjust agent position to account for the expanded grid
+        agent_x += 1
+        agent_y += 1
+        new_grid_flat = new_grid_flat.at[agent_y, agent_x].set(agent_tile)
+
+    # Reshape to final image
+    transposed_images = new_grid_flat.transpose(0, 2, 1, 3, 4)
+    final_image = transposed_images.reshape(new_H * img_H, new_W * img_W, C)
+
+    return final_image
+
 def place_arrows_on_image(
         image,
         positions,
@@ -195,6 +238,7 @@ def place_arrows_on_image(
         maze_height,
         maze_width,
         arrow_scale = 5,
+        arrow_color = 'g',
         ax=None):
     # Get the dimensions of the image and the maze
     image_height, image_width, _ = image.shape
@@ -233,12 +277,12 @@ def place_arrows_on_image(
         else:  # KeyboardActions.done
             continue  # Skip drawing an arrow for the 'done' action
 
-        # Draw the arrow on the image
-        ax.arrow(center_x, center_y, dx, dy, 
-         head_width=scale_x / arrow_scale,
-         head_length=scale_y / arrow_scale, 
+        # Draw the arrow on the image with specified color
+        ax.arrow(center_x, center_y, dx, dy,
+         head_width=scale_x / (arrow_scale * 0.7),  # Increased head width by ~40%
+         head_length=scale_y / (arrow_scale * 0.7), # Increased head length by ~40%
          width=scale_x / (arrow_scale * 2),
-         fc='g', ec='g')
+         fc=arrow_color, ec=arrow_color)
 
     # Remove the axis ticks and labels
     

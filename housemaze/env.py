@@ -245,8 +245,8 @@ class HouseMaze:
 
     def __init__(
             self,
-            num_categories: int,
             task_runner: TaskRunner,
+            num_categories: int = 200, # arbitrarily large number
             action_spec: str = 'keyboard',
             use_done: bool = False,
     ):
