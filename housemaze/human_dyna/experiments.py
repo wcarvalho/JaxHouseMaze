@@ -1,9 +1,7 @@
 import jax.numpy as jnp
 import jax.tree_util as jtu
 
-
-from housemaze.human_dyna import multitask_env
-from housemaze.human_dyna import mazes
+from housemaze.human_dyna import mazes, multitask_env
 
 
 def maze1_all(config):
