@@ -317,7 +317,7 @@ class HouseMaze:
     )
 
     # Just to be safe?
-    observation = jax.tree_map(lambda x: jax.lax.stop_gradient(x), observation)
+    observation = jax.tree.map(lambda x: jax.lax.stop_gradient(x), observation)
     return observation
 
   def reset(self, rng: jax.Array, params: EnvParams) -> TimeStep:
@@ -344,7 +344,7 @@ class HouseMaze:
       def index(p):
         return jax.lax.dynamic_index_in_dim(p, map_idx, keepdims=False)
 
-      map_init = jax.tree_map(index, params.map_init)
+      map_init = jax.tree.map(index, params.map_init)
     else:
       raise NotImplementedError
 
