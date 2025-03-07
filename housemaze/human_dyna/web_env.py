@@ -12,11 +12,13 @@ from flax import struct
 
 from housemaze import env
 from housemaze.human_dyna import multitask_env
-from housemaze.human_dyna.multitask_env import sample_spawn_locs
-from housemaze.human_dyna.multitask_env import EnvParams, ResetParams
-
-from housemaze.human_dyna.multitask_env import TimeStep
-from housemaze.human_dyna.multitask_env import StepType
+from housemaze.human_dyna.multitask_env import (
+  EnvParams,
+  ResetParams,
+  StepType,
+  TimeStep,
+  sample_spawn_locs,
+)
 
 
 def index(v, i):
@@ -33,7 +35,7 @@ class HouseMaze(multitask_env.HouseMaze):
     # sample level: assume only 1 level
     ##################
     reset_params_idx = 0
-    reset_params = jax.tree_map(
+    reset_params = jax.tree.map(
       lambda p: index(p, reset_params_idx), params.reset_params
     )
     grid = reset_params.map_init.grid

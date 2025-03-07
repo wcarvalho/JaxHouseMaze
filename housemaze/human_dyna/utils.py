@@ -1,12 +1,12 @@
 import os
-import jax.numpy as jnp
-import jax.tree_util as jtu
 
+import jax
+import jax.numpy as jnp
 import numpy as np
 
 from housemaze import levels
-from housemaze.utils import *
 from housemaze.human_dyna import multitask_env as maze
+from housemaze.utils import *
 
 
 def make_int_array(x):
@@ -128,6 +128,6 @@ def make_reset_params(
 #    )
 
 #    return group_set, maze.EnvParams(
-#        reset_params=jtu.tree_map(
+#        reset_params=jax.tree.map(
 #            lambda *v: jnp.stack(v), *list_of_reset_params),
 #    )
