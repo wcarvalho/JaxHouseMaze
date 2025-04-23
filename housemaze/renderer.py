@@ -117,19 +117,26 @@ def create_image_from_grid(
   image_dict: dict,
   spawn_locs: Optional[jnp.array] = None,
   include_objects: bool = True,
+  add_border: bool = True,
 ):
   # Assumes wall_index is the index for the wall image in image_dict['images']
   wall_index = image_dict["keys"].index("wall")
 
-  # Expand grid size by 2 in each direction (top, bottom, left, right)
-  H, W = grid.shape[:2]
-  new_H, new_W = H + 2, W + 2
+  if add_border:
+    # Expand grid size by 2 in each direction (top, bottom, left, right)
+    H, W = grid.shape[:2]
+    new_H, new_W = H + 2, W + 2
 
-  # Create a new grid with wall index
-  new_grid = jnp.full((new_H, new_W, 1), wall_index, dtype=grid.dtype)
+    # Create a new grid with wall index
+    new_grid = jnp.full((new_H, new_W, 1), wall_index, dtype=grid.dtype)
 
-  # Place the original grid in the center of the new grid
-  new_grid = new_grid.at[1 : H + 1, 1 : W + 1, :].set(grid)
+    # Place the original grid in the center of the new grid
+    new_grid = new_grid.at[1 : H + 1, 1 : W + 1, :].set(grid)
+  else:
+    # Use the original grid without border
+    H, W = grid.shape[:2]
+    new_H, new_W = H, W
+    new_grid = grid.reshape(H, W, 1)
 
   # Flatten the grid for easier indexing
   new_grid_flat = new_grid.squeeze()  # Removes the last dimension assuming it's 1
@@ -193,9 +200,10 @@ def create_image_from_grid(
 
   # Add all agents to the image
   agent_y, agent_x = agent_pos
-  # Adjust agent position to account for the expanded grid
-  agent_x += 1
-  agent_y += 1
+  # Adjust agent position only if we're adding a border
+  if add_border:
+    agent_x += 1
+    agent_y += 1
   reshaped_images = reshaped_images.at[agent_y, agent_x].set(agent_tile)
 
   # Then, transpose to (new_H, img_H, new_W, img_W, C)
@@ -260,6 +268,7 @@ def place_arrows_on_image(
   arrow_scale=5,
   arrow_color="g",
   ax=None,
+  plot_image=True,
 ):
   # Get the dimensions of the image and the maze
   image_height, image_width, _ = image.shape
@@ -277,7 +286,8 @@ def place_arrows_on_image(
     fig, ax = plt.subplots(1, figsize=(5, 5))
 
   # Display the rendered image
-  ax.imshow(image)
+  if plot_image:
+    ax.imshow(image)
 
   # Iterate over each position and action
   for (y, x), action in zip(positions, actions):
