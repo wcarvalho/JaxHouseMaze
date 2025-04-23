@@ -268,6 +268,7 @@ def place_arrows_on_image(
   arrow_scale=5,
   arrow_color="g",
   ax=None,
+  plot_image=True,
 ):
   # Get the dimensions of the image and the maze
   image_height, image_width, _ = image.shape
@@ -285,7 +286,8 @@ def place_arrows_on_image(
     fig, ax = plt.subplots(1, figsize=(5, 5))
 
   # Display the rendered image
-  ax.imshow(image)
+  if plot_image:
+    ax.imshow(image)
 
   # Iterate over each position and action
   for (y, x), action in zip(positions, actions):

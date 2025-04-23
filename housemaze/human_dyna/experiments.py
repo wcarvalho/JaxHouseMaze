@@ -253,14 +253,17 @@ def exp1(config, analysis_eval: bool = False):
 
 
 def exp2(config, analysis_eval: bool = False):
-  train_mazes = ["big_m1_maze3", "big_m2_maze2", "big_m3_maze1"]
+  train_mazes = [
+    "big_m1_maze3",
+    #"big_m2_maze2",
+    "big_m3_maze1"]
   if analysis_eval:
     eval_mazes = [
       "big_m1_maze3",
       "big_m1_maze3_shortcut",
-      "big_m2_maze2",
-      "big_m2_maze2_onpath",
-      "big_m2_maze2_offpath",
+      #"big_m2_maze2",
+      #"big_m2_maze2_onpath",
+      #"big_m2_maze2_offpath",
       "big_m3_maze1",
     ]
   else:
