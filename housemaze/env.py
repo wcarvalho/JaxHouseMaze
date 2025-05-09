@@ -1,13 +1,11 @@
-from typing import Optional, List, Callable, Tuple
-
-
 from enum import IntEnum
-from flax import struct
 from functools import partial
+from typing import Callable, List, Optional, Tuple
+
+import distrax
 import jax
 import jax.numpy as jnp
-import distrax
-
+from flax import struct
 
 Grid = jax.Array
 AgentPos = jax.Array
@@ -288,6 +286,15 @@ class HouseMaze:
 
     Categories are [objects, directions, spatial positions, actions]
     """
+    return Observation(
+        image=jnp.squeeze(state.grid).astype(int),
+        task_w=state.task_w.astype(float),
+        state_features=state.task_state.features.astype(float),
+        position=state.agent_pos,
+        direction=state.agent_dir,
+        prev_action=prev_action        
+    )
+
     grid = state.grid
     agent_pos = state.agent_pos
     agent_dir = state.agent_dir
@@ -319,7 +326,7 @@ class HouseMaze:
     )
 
     # Just to be safe?
-    observation = jax.tree_map(lambda x: jax.lax.stop_gradient(x), observation)
+    observation = jax.tree.map(lambda x: jax.lax.stop_gradient(x), observation)
     return observation
 
   def reset(self, rng: jax.Array, params: EnvParams) -> TimeStep:
@@ -346,13 +353,13 @@ class HouseMaze:
       def index(p):
         return jax.lax.dynamic_index_in_dim(p, map_idx, keepdims=False)
 
-      map_init = jax.tree_map(index, params.map_init)
+      map_init = jax.tree.map(index, params.map_init)
     else:
       raise NotImplementedError
 
     grid = map_init.grid
     agent_dir = map_init.agent_dir
-    agent_pos = map_init.agent_pos
+    agent_pos = jnp.asarray(map_init.agent_pos)
 
     ##################
     # sample task object
