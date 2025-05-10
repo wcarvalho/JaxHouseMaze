@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Tuple
 import jax
 import jax.numpy as jnp
 from flax import struct
@@ -22,7 +22,7 @@ class ResetParams:
   curriculum: jax.Array = jnp.array(False)
   label: jax.Array = jnp.array(0)
   randomize_agent: bool = jnp.array(False)
-
+  rotation: Tuple[int, int] = (0, 0)
 
 @struct.dataclass
 class EnvParams:
@@ -36,6 +36,7 @@ class EnvParams:
   randomize_agent: bool = False
   randomization_radius: int = 0  # New parameter
   task_probs: jax.Array = None
+
 
 
 @struct.dataclass

@@ -777,7 +777,7 @@ def groups_to_char2key(group_set):
   return char2key
 
 
-def get_group_set(num_groups, group_set=None):
+def get_group_set(num_groups: int = 2, group_set=None):
   if group_set is None:
     list_of_groups = load_groups()
     group_set = list_of_groups[0]
