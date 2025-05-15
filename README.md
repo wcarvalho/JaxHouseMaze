@@ -1,7 +1,7 @@
 # Install
 ```
 # pip install
-pip install git+https://github.com/wcarvalho/JaxHouseMaze.git
+pip install git+https://github.com/wcarvalho/JaxMaze.git
 
 # more manauly
 conda create -n housemaze python=3.10 pip wheel -y
