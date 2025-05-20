@@ -276,7 +276,7 @@ def make_human_experiments_block(
   eval_kwargs=None,
   pretrain_level=None,
   max_starting_locs=10,
-  include_rotations=False,
+  include_rotations=True,
 ):
   def make_int(i):
     return jnp.array(i, dtype=jnp.int32)
@@ -306,15 +306,19 @@ def make_human_experiments_block(
   original_group_set = group_set
   original_char2key = char2key
 
+  if not include_rotations:
+    rotations = [(False, False)]
+
   for train_maze, eval_maze in train_test_pairs:
     train_maze_str = getattr(mazes, train_maze)
     eval_maze_str = getattr(mazes, eval_maze)
     for rotation in rotations:
-
-      group_set, char2key_idx = rotate_group(group_set)
+      
+      if include_rotations:
+        group_set, char2key = rotate_group(group_set)
       train_params = mazes.get_maze_reset_params(
         groups=group_set,
-        char2key=char2key_idx,
+        char2key=char2key,
         maze_str=reverse(train_maze_str, horizontal=rotation[0], vertical=rotation[1]),
         label=make_int(maze2idx[train_maze]),
         max_starting_locs=max_starting_locs,
@@ -326,7 +330,7 @@ def make_human_experiments_block(
 
       eval_params = mazes.get_maze_reset_params(
         groups=group_set,
-        char2key=char2key_idx,
+        char2key=char2key,
         maze_str=reverse(eval_maze_str, horizontal=rotation[0], vertical=rotation[1]),
         label=make_int(maze2idx[eval_maze]),
         max_starting_locs=max_starting_locs,
@@ -339,13 +343,15 @@ def make_human_experiments_block(
   if pretrain_level:
     pretrain_level_str = getattr(mazes, pretrain_level)
     for rotation in rotations:
-      group_set, char2key_idx = rotate_group(group_set)
+      if include_rotations:
+        group_set, char2key = rotate_group(group_set)
       all_train_params += mazes.get_maze_reset_params(
         groups=group_set,
-        char2key=char2key_idx,
+        char2key=char2key,
         maze_str=reverse(pretrain_level_str, horizontal=rotation[0], vertical=rotation[1]),
         label=make_int(maze2idx[pretrain_level]),
-        #swap_train_test=True,
+        max_starting_locs=max_starting_locs,
+        swap_train_test=True,
         curriculum=True,
         rotation=jnp.asarray(rotation),
       )
@@ -546,7 +552,6 @@ def exp3(config, analysis_eval: bool = False):
     include_rotations=True,
   )
 
-
 def exp4(config, analysis_eval: bool = False):
   """
   This is blocked so each block has the same group rotation.
@@ -564,21 +569,21 @@ def exp4(config, analysis_eval: bool = False):
   if analysis_eval:
     train_test_pairs = [
       ("big_m3_maze1", "big_m3_maze1"),
-      ("big_m1_maze3", "big_m1_maze3"),
+      #("big_m1_maze3", "big_m1_maze3"),
       ("big_m1_maze3", "big_m1_maze3_shortcut"),
     ]
   else:
     train_test_pairs = [
       ("big_m3_maze1", "big_m3_maze1"),
-      ("big_m1_maze3", "big_m1_maze3_shortcut"),
+      ("big_m1_maze3", "big_m1_maze3"),
     ]
 
   return make_human_experiments_block(
     config,
     train_test_pairs,
     pretrain_level="big_practice_maze",
-    max_starting_locs=20,
-    include_rotations=True,
+    max_starting_locs=config.get("NUM_STARTING_LOCS", 30),
+    include_rotations=config.get("INCLUDE_ROTATIONS", True),
   )
 
 def exp_test(config, analysis_eval: bool = False):

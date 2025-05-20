@@ -48,6 +48,7 @@ class Observation(struct.PyTreeNode):
   position: jax.Array
   direction: jax.Array
   prev_action: jax.Array
+  rotation: Optional[jax.Array] = None
 
 
 @struct.dataclass
@@ -309,6 +310,7 @@ class HouseMaze:
     start = num_object_categories + num_directions + H + W
     prev_action_category = start + prev_action
 
+
     observation = Observation(
       image=jnp.squeeze(state.grid).astype(jnp.int32),
       state_features=state.task_state.features.astype(jnp.float32),
@@ -317,6 +319,11 @@ class HouseMaze:
       position=jnp.array(position_category, dtype=jnp.int32),
       prev_action=jnp.array(prev_action_category, dtype=jnp.int32),
     )
+    if state.rotation is not None:
+      start = num_object_categories + num_directions + H + W + self.num_actions()
+      rotation = start + state.rotation.astype(jnp.int32).sum()
+      observation = observation.replace(
+        rotation=rotation)
 
     # Just to be safe?
     observation = jax.tree_map(lambda x: jax.lax.stop_gradient(x), observation)
